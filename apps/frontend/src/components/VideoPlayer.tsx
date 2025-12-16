@@ -35,6 +35,29 @@ export default function VideoPlayer({
         audioTracks: stream.getAudioTracks().length,
       });
 
+      // Vérifier si les tracks vidéo sont mutés
+      const videoTracks = stream.getVideoTracks();
+      videoTracks.forEach((track, index) => {
+        console.log(`[${label}] 📹 Track vidéo ${index}:`, {
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState,
+          label: track.label,
+        });
+
+        if (track.muted) {
+          console.warn(`[${label}] ⚠️ ATTENTION: Track vidéo ${index} est MUTED - pas de données vidéo disponibles!`);
+
+          // Écouter l'événement unmute pour détecter quand le track devient actif
+          const handleUnmute = () => {
+            console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - données vidéo maintenant disponibles!`);
+            videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
+          };
+
+          track.addEventListener('unmute', handleUnmute);
+        }
+      });
+
       // Ajouter un listener pour forcer le play quand les métadonnées sont chargées
       const handleLoadedMetadata = () => {
         console.log(`[${label}] 📊 Métadonnées chargées, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
