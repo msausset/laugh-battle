@@ -36,21 +36,21 @@ export default function VideoPlayer({
 
   return (
     <div className="relative bg-gray-900 rounded-xl overflow-hidden aspect-video border-2 border-gray-700">
-      {isLoading || !stream ? (
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        muted={isMuted}
+        className={`w-full h-full object-cover ${mirror ? 'scale-x-[-1]' : ''}`}
+      />
+
+      {(isLoading || !stream) && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"></div>
             <p className="text-gray-400">En attente de la vidéo...</p>
           </div>
         </div>
-      ) : (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted={isMuted}
-          className={`w-full h-full object-cover ${mirror ? 'scale-x-[-1]' : ''}`}
-        />
       )}
 
       {/* Label */}
