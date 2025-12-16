@@ -131,6 +131,21 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
             muted: track.muted,
             readyState: track.readyState,
           });
+
+          // Écouter l'événement unmute pour voir si le track devient actif plus tard
+          if (track.muted) {
+            console.warn(`⚠️ Track vidéo ${index} est MUTED - pas de données disponibles actuellement`);
+
+            const handleUnmute = () => {
+              console.log(`🎉 Track vidéo ${index} est devenu UNMUTED!`, {
+                enabled: track.enabled,
+                muted: track.muted,
+                readyState: track.readyState,
+              });
+            };
+
+            track.addEventListener('unmute', handleUnmute, { once: true });
+          }
         });
 
         setRemoteStream(remoteStream);
@@ -214,6 +229,21 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
           muted: track.muted,
           readyState: track.readyState,
         });
+
+        // Écouter l'événement unmute pour voir si le track devient actif plus tard
+        if (track.muted) {
+          console.warn(`⚠️ Track vidéo ${index} est MUTED - pas de données disponibles actuellement`);
+
+          const handleUnmute = () => {
+            console.log(`🎉 Track vidéo ${index} est devenu UNMUTED!`, {
+              enabled: track.enabled,
+              muted: track.muted,
+              readyState: track.readyState,
+            });
+          };
+
+          track.addEventListener('unmute', handleUnmute, { once: true });
+        }
       });
 
       setRemoteStream(remoteStream);

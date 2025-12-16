@@ -57,17 +57,18 @@ export default function VideoPlayer({
           label: track.label,
         });
 
+        // Toujours écouter unmute, même si le track n'est pas muted initialement
+        // car il peut devenir muted dynamiquement
+        const handleUnmute = () => {
+          console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - données vidéo maintenant disponibles!`);
+          videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
+        };
+
+        track.addEventListener('unmute', handleUnmute);
+        unmuteHandlers.push({ track, handler: handleUnmute });
+
         if (track.muted) {
-          console.warn(`[${label}] ⚠️ ATTENTION: Track vidéo ${index} est MUTED - pas de données vidéo disponibles!`);
-
-          // Écouter l'événement unmute pour détecter quand le track devient actif
-          const handleUnmute = () => {
-            console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - données vidéo maintenant disponibles!`);
-            videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
-          };
-
-          track.addEventListener('unmute', handleUnmute);
-          unmuteHandlers.push({ track, handler: handleUnmute });
+          console.warn(`[${label}] ⚠️ ATTENTION: Track vidéo ${index} est MUTED initialement - en attente de données vidéo...`);
         }
       });
 
