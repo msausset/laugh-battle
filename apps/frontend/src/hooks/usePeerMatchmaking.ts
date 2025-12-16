@@ -62,6 +62,16 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
           },
         });
 
+        // S'assurer que tous les tracks sont activés et non mutés
+        stream.getTracks().forEach((track) => {
+          track.enabled = true;
+          console.log(`Track ${track.kind}:`, {
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState,
+          });
+        });
+
         setLocalStream(stream);
         console.log('📹 Stream local initialisé');
       } catch (error) {
@@ -106,11 +116,20 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
 
         // Vérifier l'état des tracks vidéo
         remoteStream.getVideoTracks().forEach((track, index) => {
-          console.log(`Track vidéo ${index}:`, {
+          console.log(`Track vidéo ${index} (AVANT):`, {
             enabled: track.enabled,
             muted: track.muted,
             readyState: track.readyState,
             id: track.id,
+          });
+
+          // S'assurer que le track est enabled
+          track.enabled = true;
+
+          console.log(`Track vidéo ${index} (APRÈS):`, {
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState,
           });
         });
 
@@ -180,11 +199,20 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
 
       // Vérifier l'état des tracks vidéo
       remoteStream.getVideoTracks().forEach((track, index) => {
-        console.log(`Track vidéo ${index}:`, {
+        console.log(`Track vidéo ${index} (AVANT):`, {
           enabled: track.enabled,
           muted: track.muted,
           readyState: track.readyState,
           id: track.id,
+        });
+
+        // S'assurer que le track est enabled
+        track.enabled = true;
+
+        console.log(`Track vidéo ${index} (APRÈS):`, {
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState,
         });
       });
 

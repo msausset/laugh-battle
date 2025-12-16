@@ -40,8 +40,8 @@ export default function VideoPlayer({
       // Vérifier que l'assignation a fonctionné
       console.log(`[${label}] srcObject assigné:`, !!videoElement.srcObject);
 
-      // Forcer le chargement et la lecture
-      videoElement.load();
+      // Important: Ne PAS utiliser load() avec MediaStream, cela peut causer des problèmes
+      // Lancer directement la lecture
       videoElement.play()
         .then(() => {
           console.log(`[${label}] ✅ Lecture démarrée`);
