@@ -16,6 +16,7 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
 
   const peerRef = useRef<Peer | null>(null);
   const callRef = useRef<MediaConnection | null>(null);
+  const hasReceivedCall = useRef(false);
 
   // Initialiser PeerJS
   useEffect(() => {
@@ -84,6 +85,13 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
     if (!peer || !localStream) return;
 
     const handleIncomingCall = (call: MediaConnection) => {
+      // Éviter les appels multiples
+      if (hasReceivedCall.current) {
+        console.log('⚠️ Appel ignoré (déjà connecté)');
+        return;
+      }
+
+      hasReceivedCall.current = true;
       console.log('📞 Appel entrant de:', call.peer);
 
       // Répondre à l'appel avec notre stream
@@ -104,6 +112,7 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
         console.log('📞 Appel terminé');
         setRemoteStream(null);
         setIsConnected(false);
+        hasReceivedCall.current = false;
       });
 
       callRef.current = call;
