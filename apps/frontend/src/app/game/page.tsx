@@ -220,7 +220,7 @@ export default function GamePage() {
         <VideoPlayer
           stream={remoteStream}
           label="Adversaire"
-          isMuted={false}
+          isMuted={true}
           isLoading={!remoteStream}
         />
 
