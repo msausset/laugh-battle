@@ -58,13 +58,38 @@ export default function VideoPlayer({
         }
       });
 
-      // Ajouter un listener pour forcer le play quand les métadonnées sont chargées
+      // Ajouter des listeners pour diagnostiquer le chargement de la vidéo
       const handleLoadedMetadata = () => {
         console.log(`[${label}] 📊 Métadonnées chargées, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
         videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après metadata:`, e));
       };
 
+      const handleLoadStart = () => {
+        console.log(`[${label}] 🔄 Début du chargement de la vidéo`);
+      };
+
+      const handleLoadedData = () => {
+        console.log(`[${label}] 📥 Premières données chargées`);
+      };
+
+      const handleCanPlay = () => {
+        console.log(`[${label}] ▶️ Vidéo prête à être lue (canplay)`);
+      };
+
+      const handleStalled = () => {
+        console.warn(`[${label}] ⏸️ Chargement bloqué (stalled)`);
+      };
+
+      const handleSuspend = () => {
+        console.warn(`[${label}] ⏸️ Chargement suspendu (suspend)`);
+      };
+
+      videoElement.addEventListener('loadstart', handleLoadStart);
+      videoElement.addEventListener('loadeddata', handleLoadedData);
       videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+      videoElement.addEventListener('canplay', handleCanPlay);
+      videoElement.addEventListener('stalled', handleStalled);
+      videoElement.addEventListener('suspend', handleSuspend);
 
       videoElement.srcObject = stream;
 
@@ -105,9 +130,6 @@ export default function VideoPlayer({
 
     return () => {
       console.log(`[${label}] Cleanup useEffect`);
-      if (videoElement) {
-        videoElement.removeEventListener('loadedmetadata', () => {});
-      }
     };
   }, [stream, label]);
 
