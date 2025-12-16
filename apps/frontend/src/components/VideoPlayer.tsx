@@ -19,25 +19,45 @@ export default function VideoPlayer({
 
   useEffect(() => {
     const videoElement = videoRef.current;
-    if (!videoElement || !stream) return;
 
+    console.log(`[VideoPlayer ${label}] useEffect appelé`, {
+      hasVideoElement: !!videoElement,
+      hasStream: !!stream,
+      streamActive: stream?.active,
+      videoTracks: stream?.getVideoTracks().length,
+      audioTracks: stream?.getAudioTracks().length,
+    });
+
+    if (!videoElement || !stream) {
+      console.log(`[VideoPlayer ${label}] Sortie précoce - pas de video ou stream`);
+      return;
+    }
+
+    console.log(`[VideoPlayer ${label}] Assignation du srcObject`);
     videoElement.srcObject = stream;
 
     // Forcer la lecture de la vidéo
-    videoElement.play().catch((error) => {
-      console.error('Erreur lors de la lecture de la vidéo:', error);
-      // Réessayer après un court délai
-      setTimeout(() => {
-        videoElement.play().catch(console.error);
-      }, 100);
-    });
+    videoElement.play()
+      .then(() => {
+        console.log(`[VideoPlayer ${label}] ✅ Lecture démarrée avec succès`);
+      })
+      .catch((error) => {
+        console.error(`[VideoPlayer ${label}] ❌ Erreur lors de la lecture:`, error);
+        // Réessayer après un court délai
+        setTimeout(() => {
+          videoElement.play()
+            .then(() => console.log(`[VideoPlayer ${label}] ✅ Lecture démarrée (2ème essai)`))
+            .catch(err => console.error(`[VideoPlayer ${label}] ❌ Échec 2ème essai:`, err));
+        }, 100);
+      });
 
     return () => {
+      console.log(`[VideoPlayer ${label}] Cleanup`);
       if (videoElement.srcObject) {
         videoElement.srcObject = null;
       }
     };
-  }, [stream]);
+  }, [stream, label]);
 
   return (
     <div className="relative bg-gray-900 rounded-xl overflow-hidden aspect-video border-2 border-gray-700">
