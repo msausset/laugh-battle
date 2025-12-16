@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeerMatchmaking } from '@/hooks/usePeerMatchmaking';
 import VideoPlayer from '@/components/VideoPlayer';
@@ -61,6 +61,28 @@ export default function GamePage() {
     disconnect();
     router.push('/');
   };
+
+  // Log pour tracer les changements de remoteStream
+  useEffect(() => {
+    console.log('🔄 [GamePage] remoteStream changé:', {
+      hasStream: !!remoteStream,
+      streamId: remoteStream?.id,
+      active: remoteStream?.active,
+      videoTracks: remoteStream?.getVideoTracks().length ?? 0,
+      audioTracks: remoteStream?.getAudioTracks().length ?? 0,
+    });
+  }, [remoteStream]);
+
+  // Log pour tracer les changements de localStream
+  useEffect(() => {
+    console.log('🔄 [GamePage] localStream changé:', {
+      hasStream: !!localStream,
+      streamId: localStream?.id,
+      active: localStream?.active,
+      videoTracks: localStream?.getVideoTracks().length ?? 0,
+      audioTracks: localStream?.getAudioTracks().length ?? 0,
+    });
+  }, [localStream]);
 
   // Menu principal - Créer ou rejoindre
   if (screenMode === 'menu') {
@@ -220,7 +242,7 @@ export default function GamePage() {
         <VideoPlayer
           stream={remoteStream}
           label="Adversaire"
-          isMuted={true}
+          isMuted={false}
           isLoading={!remoteStream}
         />
 

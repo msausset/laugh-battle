@@ -103,6 +103,17 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
         console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
         console.log('Tracks audio:', remoteStream.getAudioTracks().length);
         console.log('Stream actif:', remoteStream.active);
+
+        // Vérifier l'état des tracks vidéo
+        remoteStream.getVideoTracks().forEach((track, index) => {
+          console.log(`Track vidéo ${index}:`, {
+            enabled: track.enabled,
+            muted: track.muted,
+            readyState: track.readyState,
+            id: track.id,
+          });
+        });
+
         setRemoteStream(remoteStream);
         setIsConnected(true);
         setIsSearching(false);
@@ -166,6 +177,17 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
       console.log('📺 Stream distant reçu (appel sortant)');
       console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
       console.log('Tracks audio:', remoteStream.getAudioTracks().length);
+
+      // Vérifier l'état des tracks vidéo
+      remoteStream.getVideoTracks().forEach((track, index) => {
+        console.log(`Track vidéo ${index}:`, {
+          enabled: track.enabled,
+          muted: track.muted,
+          readyState: track.readyState,
+          id: track.id,
+        });
+      });
+
       setRemoteStream(remoteStream);
       setIsConnected(true);
       setIsSearching(false);

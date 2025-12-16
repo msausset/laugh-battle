@@ -28,23 +28,37 @@ export default function VideoPlayer({
 
     if (stream) {
       console.log(`[${label}] ✅ Assignation stream au srcObject`);
+      console.log(`[${label}] Stream details:`, {
+        id: stream.id,
+        active: stream.active,
+        videoTracks: stream.getVideoTracks().length,
+        audioTracks: stream.getAudioTracks().length,
+      });
+
       videoElement.srcObject = stream;
 
       // Vérifier que l'assignation a fonctionné
       console.log(`[${label}] srcObject assigné:`, !!videoElement.srcObject);
 
+      // Forcer le chargement et la lecture
+      videoElement.load();
       videoElement.play()
-        .then(() => console.log(`[${label}] ✅ Lecture démarrée`))
+        .then(() => {
+          console.log(`[${label}] ✅ Lecture démarrée`);
+          console.log(`[${label}] Video state:`, {
+            paused: videoElement.paused,
+            readyState: videoElement.readyState,
+            networkState: videoElement.networkState,
+          });
+        })
         .catch(err => console.error(`[${label}] ❌ Erreur play:`, err));
     } else {
       console.log(`[${label}] ⚠️ Pas de stream à assigner`);
+      videoElement.srcObject = null;
     }
 
     return () => {
       console.log(`[${label}] Cleanup useEffect`);
-      if (videoElement && videoElement.srcObject) {
-        videoElement.srcObject = null;
-      }
     };
   }, [stream, label]);
 
