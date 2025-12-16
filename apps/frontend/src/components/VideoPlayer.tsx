@@ -60,8 +60,19 @@ export default function VideoPlayer({
         // Toujours écouter unmute, même si le track n'est pas muted initialement
         // car il peut devenir muted dynamiquement
         const handleUnmute = () => {
-          console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - données vidéo maintenant disponibles!`);
-          videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
+          console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - réassignation du stream pour charger les données!`);
+
+          // Réassigner le stream pour forcer le rechargement avec les nouvelles données
+          videoElement.srcObject = null;
+          setTimeout(() => {
+            videoElement.srcObject = stream;
+            videoElement.play()
+              .then(() => {
+                console.log(`[${label}] ✅ Vidéo rechargée après unmute avec succès`);
+                setLoadFailed(false); // Réinitialiser l'état d'échec
+              })
+              .catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
+          }, 100);
         };
 
         track.addEventListener('unmute', handleUnmute);
