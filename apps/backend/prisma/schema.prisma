@@ -1,0 +1,37 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  socketId  String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  gamesAsPlayer1 Game[] @relation("Player1")
+  gamesAsPlayer2 Game[] @relation("Player2")
+
+  @@map("users")
+}
+
+model Game {
+  id         String      @id @default(uuid())
+  player1Id  String
+  player2Id  String
+  status     String      @default("WAITING")
+  winnerId   String?
+  startedAt  DateTime    @default(now())
+  endedAt    DateTime?
+
+  player1    User        @relation("Player1", fields: [player1Id], references: [id], onDelete: Cascade)
+  player2    User        @relation("Player2", fields: [player2Id], references: [id], onDelete: Cascade)
+
+  @@map("games")
+}
+
+// Valeurs possibles pour status: WAITING, PLAYING, FINISHED, CANCELLED
