@@ -35,6 +35,14 @@ export default function VideoPlayer({
         audioTracks: stream.getAudioTracks().length,
       });
 
+      // Ajouter un listener pour forcer le play quand les métadonnées sont chargées
+      const handleLoadedMetadata = () => {
+        console.log(`[${label}] 📊 Métadonnées chargées, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+        videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après metadata:`, e));
+      };
+
+      videoElement.addEventListener('loadedmetadata', handleLoadedMetadata);
+
       videoElement.srcObject = stream;
 
       // Vérifier que l'assignation a fonctionné
@@ -42,16 +50,31 @@ export default function VideoPlayer({
 
       // Important: Ne PAS utiliser load() avec MediaStream, cela peut causer des problèmes
       // Lancer directement la lecture
-      videoElement.play()
-        .then(() => {
-          console.log(`[${label}] ✅ Lecture démarrée`);
-          console.log(`[${label}] Video state:`, {
-            paused: videoElement.paused,
-            readyState: videoElement.readyState,
-            networkState: videoElement.networkState,
+      const playPromise = videoElement.play();
+
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log(`[${label}] ✅ Lecture démarrée`);
+            console.log(`[${label}] Video state:`, {
+              paused: videoElement.paused,
+              readyState: videoElement.readyState,
+              networkState: videoElement.networkState,
+              videoWidth: videoElement.videoWidth,
+              videoHeight: videoElement.videoHeight,
+            });
+          })
+          .catch(err => {
+            console.error(`[${label}] ❌ Erreur play:`, err);
+            // Réessayer après un court délai
+            setTimeout(() => {
+              console.log(`[${label}] 🔄 Tentative de relance de la vidéo...`);
+              videoElement.play()
+                .then(() => console.log(`[${label}] ✅ Relance réussie`))
+                .catch(e => console.error(`[${label}] ❌ Relance échouée:`, e));
+            }, 500);
           });
-        })
-        .catch(err => console.error(`[${label}] ❌ Erreur play:`, err));
+      }
     } else {
       console.log(`[${label}] ⚠️ Pas de stream à assigner`);
       videoElement.srcObject = null;
@@ -59,6 +82,9 @@ export default function VideoPlayer({
 
     return () => {
       console.log(`[${label}] Cleanup useEffect`);
+      if (videoElement) {
+        videoElement.removeEventListener('loadedmetadata', () => {});
+      }
     };
   }, [stream, label]);
 
