@@ -16,6 +16,7 @@ export default function VideoPlayer({
   mirror = false,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const currentStreamId = useRef<string | null>(null);
 
   // Log à chaque render
   console.log(`[${label}] Render - stream:`, !!stream, 'isLoading:', isLoading);
@@ -27,6 +28,13 @@ export default function VideoPlayer({
     if (!videoElement) return;
 
     if (stream) {
+      // Éviter de réassigner le même stream (évite les re-renders inutiles)
+      if (currentStreamId.current === stream.id) {
+        console.log(`[${label}] ⏭️ Stream déjà assigné (même ID), skip`);
+        return;
+      }
+
+      currentStreamId.current = stream.id;
       console.log(`[${label}] ✅ Assignation stream au srcObject`);
       console.log(`[${label}] Stream details:`, {
         id: stream.id,
@@ -141,6 +149,7 @@ export default function VideoPlayer({
     } else {
       console.log(`[${label}] ⚠️ Pas de stream à assigner`);
       videoElement.srcObject = null;
+      currentStreamId.current = null;
     }
 
     return () => {
