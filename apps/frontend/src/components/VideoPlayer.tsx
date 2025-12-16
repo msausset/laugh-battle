@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 interface VideoPlayerProps {
   stream: MediaStream | null;
@@ -17,6 +17,7 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentStreamId = useRef<string | null>(null);
+  const [loadFailed, setLoadFailed] = useState(false);
 
   // Log à chaque render
   console.log(`[${label}] Render - stream:`, !!stream, 'isLoading:', isLoading);
@@ -35,6 +36,7 @@ export default function VideoPlayer({
       }
 
       currentStreamId.current = stream.id;
+      setLoadFailed(false); // Réinitialiser l'état d'échec
       console.log(`[${label}] ✅ Assignation stream au srcObject`);
       console.log(`[${label}] Stream details:`, {
         id: stream.id,
@@ -76,19 +78,13 @@ export default function VideoPlayer({
       const handleLoadStart = () => {
         console.log(`[${label}] 🔄 Début du chargement de la vidéo`);
 
-        // Si après 2 secondes les métadonnées ne sont pas chargées, on force une réinitialisation
+        // Si après 3 secondes les métadonnées ne sont pas chargées, marquer comme échec
         setTimeout(() => {
-          if (videoElement.readyState === 0 && !hasTriedReload) {
-            hasTriedReload = true;
-            console.warn(`[${label}] ⚠️ Timeout: Métadonnées non chargées après 2s, réinitialisation...`);
-            const currentStream = videoElement.srcObject as MediaStream;
-            videoElement.srcObject = null;
-            setTimeout(() => {
-              videoElement.srcObject = currentStream;
-              videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après réinit:`, e));
-            }, 100);
+          if (videoElement.readyState === 0) {
+            console.error(`[${label}] ⚠️ Timeout: Métadonnées non chargées après 3s - échec du chargement`);
+            setLoadFailed(true);
           }
-        }, 2000);
+        }, 3000);
       };
 
       const handleLoadedData = () => {
@@ -137,13 +133,7 @@ export default function VideoPlayer({
           })
           .catch(err => {
             console.error(`[${label}] ❌ Erreur play:`, err);
-            // Réessayer après un court délai
-            setTimeout(() => {
-              console.log(`[${label}] 🔄 Tentative de relance de la vidéo...`);
-              videoElement.play()
-                .then(() => console.log(`[${label}] ✅ Relance réussie`))
-                .catch(e => console.error(`[${label}] ❌ Relance échouée:`, e));
-            }, 500);
+            setLoadFailed(true);
           });
       }
     } else {
@@ -174,7 +164,21 @@ export default function VideoPlayer({
         className={`w-full h-full object-cover ${mirror ? 'scale-x-[-1]' : ''}`}
       />
 
-      {(isLoading || !stream) && (
+      {loadFailed && stream && (
+        <div className="absolute inset-0 flex items-center justify-center bg-red-900/20">
+          <div className="text-center p-4">
+            <div className="text-5xl mb-4">⚠️</div>
+            <p className="text-red-400 font-semibold mb-2">Impossible de charger la vidéo</p>
+            <p className="text-gray-400 text-sm">
+              Problème de compatibilité WebRTC.
+              <br />
+              Essayez avec 2 navigateurs identiques.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {(isLoading || !stream) && !loadFailed && (
         <div className="absolute inset-0 flex items-center justify-center bg-gray-800">
           <div className="text-center">
             <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-primary-500 mx-auto mb-4"></div>
