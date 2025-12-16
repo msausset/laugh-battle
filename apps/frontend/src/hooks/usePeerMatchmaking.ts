@@ -89,7 +89,9 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
       call.answer(localStream);
 
       call.on('stream', (remoteStream) => {
-        console.log('📺 Stream distant reçu');
+        console.log('📺 Stream distant reçu (appel entrant)');
+        console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
+        console.log('Tracks audio:', remoteStream.getAudioTracks().length);
         setRemoteStream(remoteStream);
         setIsConnected(true);
         setIsSearching(false);
@@ -142,7 +144,9 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
     const call = peerRef.current.call(remotePeerId, localStream);
 
     call.on('stream', (remoteStream) => {
-      console.log('📺 Stream distant reçu');
+      console.log('📺 Stream distant reçu (appel sortant)');
+      console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
+      console.log('Tracks audio:', remoteStream.getAudioTracks().length);
       setRemoteStream(remoteStream);
       setIsConnected(true);
       setIsSearching(false);

@@ -18,9 +18,25 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && stream) {
-      videoRef.current.srcObject = stream;
-    }
+    const videoElement = videoRef.current;
+    if (!videoElement || !stream) return;
+
+    videoElement.srcObject = stream;
+
+    // Forcer la lecture de la vidéo
+    videoElement.play().catch((error) => {
+      console.error('Erreur lors de la lecture de la vidéo:', error);
+      // Réessayer après un court délai
+      setTimeout(() => {
+        videoElement.play().catch(console.error);
+      }, 100);
+    });
+
+    return () => {
+      if (videoElement.srcObject) {
+        videoElement.srcObject = null;
+      }
+    };
   }, [stream]);
 
   return (
