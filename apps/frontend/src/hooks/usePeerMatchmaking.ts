@@ -137,17 +137,16 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
             console.warn(`⚠️ Track vidéo ${index} est MUTED - pas de données disponibles actuellement`);
 
             const handleUnmute = () => {
-              console.log(`🎉 Track vidéo ${index} est devenu UNMUTED! Forçage d'un nouveau setRemoteStream...`, {
+              console.log(`🎉 Track vidéo ${index} est devenu UNMUTED! Création d'un nouveau MediaStream...`, {
                 enabled: track.enabled,
                 muted: track.muted,
                 readyState: track.readyState,
               });
 
-              // Forcer un re-render en réassignant le stream
-              setRemoteStream(null);
-              setTimeout(() => {
-                setRemoteStream(remoteStream);
-              }, 50);
+              // Créer un nouveau MediaStream avec les mêmes tracks pour forcer React à détecter le changement
+              const newStream = new MediaStream(remoteStream.getTracks());
+              console.log('📺 Nouveau stream créé avec ID:', newStream.id);
+              setRemoteStream(newStream);
             };
 
             track.addEventListener('unmute', handleUnmute, { once: true });
@@ -241,18 +240,16 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
           console.warn(`⚠️ Track vidéo ${index} est MUTED - pas de données disponibles actuellement`);
 
           const handleUnmute = () => {
-            console.log(`🎉 Track vidéo ${index} est devenu UNMUTED! Forçage d'un nouveau setRemoteStream...`, {
+            console.log(`🎉 Track vidéo ${index} est devenu UNMUTED! Création d'un nouveau MediaStream...`, {
               enabled: track.enabled,
               muted: track.muted,
               readyState: track.readyState,
             });
 
-            // Forcer un re-render en réassignant le stream
-            // Créer une copie du stream pour déclencher le changement de référence
-            setRemoteStream(null);
-            setTimeout(() => {
-              setRemoteStream(remoteStream);
-            }, 50);
+            // Créer un nouveau MediaStream avec les mêmes tracks pour forcer React à détecter le changement
+            const newStream = new MediaStream(remoteStream.getTracks());
+            console.log('📺 Nouveau stream créé avec ID:', newStream.id);
+            setRemoteStream(newStream);
           };
 
           track.addEventListener('unmute', handleUnmute, { once: true });
