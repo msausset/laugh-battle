@@ -151,6 +151,16 @@ export default function VideoPlayer({
       // Vérifier que l'assignation a fonctionné
       console.log(`[${label}] srcObject assigné:`, !!videoElement.srcObject);
 
+      // Diagnostic approfondi de l'état de la vidéo immédiatement après l'assignation
+      console.log(`[${label}] État initial de la vidéo:`, {
+        readyState: videoElement.readyState,
+        networkState: videoElement.networkState,
+        paused: videoElement.paused,
+        srcObject: !!videoElement.srcObject,
+        videoWidth: videoElement.videoWidth,
+        videoHeight: videoElement.videoHeight,
+      });
+
       // Important: Ne PAS utiliser load() avec MediaStream, cela peut causer des problèmes
       // Lancer directement la lecture
       const playPromise = videoElement.play();
