@@ -80,7 +80,8 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
 
   // Gérer les appels entrants
   useEffect(() => {
-    if (!peerRef.current || !localStream) return;
+    const peer = peerRef.current;
+    if (!peer || !localStream) return;
 
     const handleIncomingCall = (call: MediaConnection) => {
       console.log('📞 Appel entrant de:', call.peer);
@@ -92,10 +93,11 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
         console.log('📺 Stream distant reçu (appel entrant)');
         console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
         console.log('Tracks audio:', remoteStream.getAudioTracks().length);
+        console.log('Stream actif:', remoteStream.active);
         setRemoteStream(remoteStream);
         setIsConnected(true);
         setIsSearching(false);
-        onConnectionEstablished?.();
+        if (onConnectionEstablished) onConnectionEstablished();
       });
 
       call.on('close', () => {
@@ -105,15 +107,15 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
       });
 
       callRef.current = call;
-      onMatchFound?.();
+      if (onMatchFound) onMatchFound();
     };
 
-    peerRef.current.on('call', handleIncomingCall);
+    peer.on('call', handleIncomingCall);
 
     return () => {
-      peerRef.current?.off('call', handleIncomingCall);
+      peer.off('call', handleIncomingCall);
     };
-  }, [peerRef.current, localStream, onMatchFound, onConnectionEstablished]);
+  }, [localStream]);
 
   // Créer une room (devenir host)
   const createRoom = () => {
