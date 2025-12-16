@@ -64,12 +64,14 @@ export default function VideoPlayer({
         videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après metadata:`, e));
       };
 
+      let hasTriedReload = false;
       const handleLoadStart = () => {
         console.log(`[${label}] 🔄 Début du chargement de la vidéo`);
 
         // Si après 2 secondes les métadonnées ne sont pas chargées, on force une réinitialisation
         setTimeout(() => {
-          if (videoElement.readyState === 0) {
+          if (videoElement.readyState === 0 && !hasTriedReload) {
+            hasTriedReload = true;
             console.warn(`[${label}] ⚠️ Timeout: Métadonnées non chargées après 2s, réinitialisation...`);
             const currentStream = videoElement.srcObject as MediaStream;
             videoElement.srcObject = null;
@@ -143,6 +145,13 @@ export default function VideoPlayer({
 
     return () => {
       console.log(`[${label}] Cleanup useEffect`);
+      if (videoElement) {
+        // Retirer tous les listeners pour éviter les fuites mémoire et les boucles
+        const events = ['loadstart', 'loadeddata', 'loadedmetadata', 'canplay', 'stalled', 'suspend'];
+        events.forEach(event => {
+          videoElement.removeEventListener(event, () => {});
+        });
+      }
     };
   }, [stream, label]);
 
