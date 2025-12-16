@@ -19,41 +19,16 @@ export default function VideoPlayer({
 
   useEffect(() => {
     const videoElement = videoRef.current;
+    if (!videoElement) return;
 
-    console.log(`[VideoPlayer ${label}] useEffect appelé`, {
-      hasVideoElement: !!videoElement,
-      hasStream: !!stream,
-      streamActive: stream?.active,
-      videoTracks: stream?.getVideoTracks().length,
-      audioTracks: stream?.getAudioTracks().length,
-    });
-
-    if (!videoElement || !stream) {
-      console.log(`[VideoPlayer ${label}] Sortie précoce - pas de video ou stream`);
-      return;
+    if (stream) {
+      console.log(`${label}: Assignation stream`);
+      videoElement.srcObject = stream;
+      videoElement.play().catch(err => console.error(`${label}: Erreur play`, err));
     }
 
-    console.log(`[VideoPlayer ${label}] Assignation du srcObject`);
-    videoElement.srcObject = stream;
-
-    // Forcer la lecture de la vidéo
-    videoElement.play()
-      .then(() => {
-        console.log(`[VideoPlayer ${label}] ✅ Lecture démarrée avec succès`);
-      })
-      .catch((error) => {
-        console.error(`[VideoPlayer ${label}] ❌ Erreur lors de la lecture:`, error);
-        // Réessayer après un court délai
-        setTimeout(() => {
-          videoElement.play()
-            .then(() => console.log(`[VideoPlayer ${label}] ✅ Lecture démarrée (2ème essai)`))
-            .catch(err => console.error(`[VideoPlayer ${label}] ❌ Échec 2ème essai:`, err));
-        }, 100);
-      });
-
     return () => {
-      console.log(`[VideoPlayer ${label}] Cleanup`);
-      if (videoElement.srcObject) {
+      if (videoElement) {
         videoElement.srcObject = null;
       }
     };
