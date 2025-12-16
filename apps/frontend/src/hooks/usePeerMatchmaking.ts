@@ -85,19 +85,20 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
     if (!peer || !localStream) return;
 
     const handleIncomingCall = (call: MediaConnection) => {
-      // Éviter les appels multiples
-      if (hasReceivedCall.current) {
-        console.log('⚠️ Appel ignoré (déjà connecté)');
-        return;
-      }
-
-      hasReceivedCall.current = true;
       console.log('📞 Appel entrant de:', call.peer);
 
       // Répondre à l'appel avec notre stream
       call.answer(localStream);
 
+      let streamReceived = false;
       call.on('stream', (remoteStream) => {
+        // Ignorer les événements stream multiples
+        if (streamReceived) {
+          console.log('⚠️ Stream supplémentaire ignoré');
+          return;
+        }
+        streamReceived = true;
+
         console.log('📺 Stream distant reçu (appel entrant)');
         console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
         console.log('Tracks audio:', remoteStream.getAudioTracks().length);
@@ -112,7 +113,6 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
         console.log('📞 Appel terminé');
         setRemoteStream(null);
         setIsConnected(false);
-        hasReceivedCall.current = false;
       });
 
       callRef.current = call;
@@ -154,7 +154,15 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
     // Appeler le peer distant
     const call = peerRef.current.call(remotePeerId, localStream);
 
+    let streamReceived = false;
     call.on('stream', (remoteStream) => {
+      // Ignorer les événements stream multiples
+      if (streamReceived) {
+        console.log('⚠️ Stream supplémentaire ignoré');
+        return;
+      }
+      streamReceived = true;
+
       console.log('📺 Stream distant reçu (appel sortant)');
       console.log('Tracks vidéo:', remoteStream.getVideoTracks().length);
       console.log('Tracks audio:', remoteStream.getAudioTracks().length);
