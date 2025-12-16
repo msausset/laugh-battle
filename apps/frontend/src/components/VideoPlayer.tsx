@@ -47,6 +47,8 @@ export default function VideoPlayer({
 
       // Vérifier si les tracks vidéo sont mutés
       const videoTracks = stream.getVideoTracks();
+      const unmuteHandlers: Array<{ track: MediaStreamTrack; handler: () => void }> = [];
+
       videoTracks.forEach((track, index) => {
         console.log(`[${label}] 📹 Track vidéo ${index}:`, {
           enabled: track.enabled,
@@ -65,21 +67,32 @@ export default function VideoPlayer({
           };
 
           track.addEventListener('unmute', handleUnmute);
+          unmuteHandlers.push({ track, handler: handleUnmute });
         }
       });
+
+      // Timeout pour détecter l'échec de chargement (une seule fois)
+      let loadTimeoutId: NodeJS.Timeout | null = null;
+      let hasLoadStarted = false;
 
       // Ajouter des listeners pour diagnostiquer le chargement de la vidéo
       const handleLoadedMetadata = () => {
         console.log(`[${label}] 📊 Métadonnées chargées, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
+        if (loadTimeoutId) clearTimeout(loadTimeoutId);
         videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après metadata:`, e));
       };
 
-      let hasTriedReload = false;
       const handleLoadStart = () => {
+        // Ne démarrer le timeout qu'une seule fois
+        if (hasLoadStarted) {
+          console.log(`[${label}] ⏭️ loadstart ignoré (déjà en cours)`);
+          return;
+        }
+        hasLoadStarted = true;
         console.log(`[${label}] 🔄 Début du chargement de la vidéo`);
 
         // Si après 3 secondes les métadonnées ne sont pas chargées, marquer comme échec
-        setTimeout(() => {
+        loadTimeoutId = setTimeout(() => {
           if (videoElement.readyState === 0) {
             console.error(`[${label}] ⚠️ Timeout: Métadonnées non chargées après 3s - échec du chargement`);
             setLoadFailed(true);
@@ -89,10 +102,12 @@ export default function VideoPlayer({
 
       const handleLoadedData = () => {
         console.log(`[${label}] 📥 Premières données chargées`);
+        if (loadTimeoutId) clearTimeout(loadTimeoutId);
       };
 
       const handleCanPlay = () => {
         console.log(`[${label}] ▶️ Vidéo prête à être lue (canplay)`);
+        if (loadTimeoutId) clearTimeout(loadTimeoutId);
       };
 
       const handleStalled = () => {
@@ -136,22 +151,34 @@ export default function VideoPlayer({
             setLoadFailed(true);
           });
       }
+
+      // Cleanup
+      return () => {
+        console.log(`[${label}] Cleanup useEffect`);
+
+        // Annuler le timeout s'il existe
+        if (loadTimeoutId) {
+          clearTimeout(loadTimeoutId);
+        }
+
+        // Retirer les listeners unmute des tracks
+        unmuteHandlers.forEach(({ track, handler }) => {
+          track.removeEventListener('unmute', handler);
+        });
+
+        // Retirer tous les listeners vidéo
+        videoElement.removeEventListener('loadstart', handleLoadStart);
+        videoElement.removeEventListener('loadeddata', handleLoadedData);
+        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+        videoElement.removeEventListener('canplay', handleCanPlay);
+        videoElement.removeEventListener('stalled', handleStalled);
+        videoElement.removeEventListener('suspend', handleSuspend);
+      };
     } else {
       console.log(`[${label}] ⚠️ Pas de stream à assigner`);
       videoElement.srcObject = null;
       currentStreamId.current = null;
     }
-
-    return () => {
-      console.log(`[${label}] Cleanup useEffect`);
-      if (videoElement) {
-        // Retirer tous les listeners pour éviter les fuites mémoire et les boucles
-        const events = ['loadstart', 'loadeddata', 'loadedmetadata', 'canplay', 'stalled', 'suspend'];
-        events.forEach(event => {
-          videoElement.removeEventListener(event, () => {});
-        });
-      }
-    };
   }, [stream, label]);
 
   return (
