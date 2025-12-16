@@ -17,18 +17,32 @@ export default function VideoPlayer({
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
 
+  // Log à chaque render
+  console.log(`[${label}] Render - stream:`, !!stream, 'isLoading:', isLoading);
+
   useEffect(() => {
     const videoElement = videoRef.current;
+    console.log(`[${label}] useEffect - videoElement:`, !!videoElement, 'stream:', !!stream);
+
     if (!videoElement) return;
 
     if (stream) {
-      console.log(`${label}: Assignation stream`);
+      console.log(`[${label}] ✅ Assignation stream au srcObject`);
       videoElement.srcObject = stream;
-      videoElement.play().catch(err => console.error(`${label}: Erreur play`, err));
+
+      // Vérifier que l'assignation a fonctionné
+      console.log(`[${label}] srcObject assigné:`, !!videoElement.srcObject);
+
+      videoElement.play()
+        .then(() => console.log(`[${label}] ✅ Lecture démarrée`))
+        .catch(err => console.error(`[${label}] ❌ Erreur play:`, err));
+    } else {
+      console.log(`[${label}] ⚠️ Pas de stream à assigner`);
     }
 
     return () => {
-      if (videoElement) {
+      console.log(`[${label}] Cleanup useEffect`);
+      if (videoElement && videoElement.srcObject) {
         videoElement.srcObject = null;
       }
     };
