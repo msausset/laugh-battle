@@ -66,6 +66,19 @@ export default function VideoPlayer({
 
       const handleLoadStart = () => {
         console.log(`[${label}] 🔄 Début du chargement de la vidéo`);
+
+        // Si après 2 secondes les métadonnées ne sont pas chargées, on force une réinitialisation
+        setTimeout(() => {
+          if (videoElement.readyState === 0) {
+            console.warn(`[${label}] ⚠️ Timeout: Métadonnées non chargées après 2s, réinitialisation...`);
+            const currentStream = videoElement.srcObject as MediaStream;
+            videoElement.srcObject = null;
+            setTimeout(() => {
+              videoElement.srcObject = currentStream;
+              videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après réinit:`, e));
+            }, 100);
+          }
+        }, 2000);
       };
 
       const handleLoadedData = () => {
