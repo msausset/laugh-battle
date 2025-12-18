@@ -10,7 +10,7 @@ import { SocketEvents } from '../types';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
+    origin: true, // Accepter toutes les origines en développement
     credentials: true,
   },
 })
