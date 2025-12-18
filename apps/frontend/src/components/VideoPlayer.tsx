@@ -29,13 +29,13 @@ export default function VideoPlayer({
     if (!videoElement) return;
 
     if (stream) {
-      // Vérifier si le track vidéo est muted - si oui, attendre qu'il soit unmuted
+      // Vérifier si le srcObject est déjà le bon stream
       const videoTrack = stream.getVideoTracks()[0];
-      const isSameStream = currentStreamId.current === stream.id;
+      const isSameStreamObject = videoElement.srcObject === stream;
 
-      // Skip seulement si c'est vraiment le même stream ET que le track n'est pas muted
-      if (isSameStream && videoTrack && !videoTrack.muted) {
-        console.log(`[${label}] ⏭️ Stream déjà assigné (même ID, track non muted), skip`);
+      // Skip seulement si srcObject est déjà assigné au bon stream ET que le track n'est pas muted ET que la vidéo est en cours de lecture
+      if (isSameStreamObject && videoTrack && !videoTrack.muted && !videoElement.paused) {
+        console.log(`[${label}] ⏭️ Stream déjà assigné et en lecture, skip`);
         return;
       }
 
