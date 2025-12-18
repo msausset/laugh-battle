@@ -10,6 +10,7 @@ datasource db {
 model User {
   id        String   @id @default(uuid())
   socketId  String   @unique
+  peerId    String?  // Peer ID pour la connexion WebRTC via PeerJS
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

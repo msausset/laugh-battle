@@ -5,6 +5,7 @@ import {
   OnGatewayConnection,
   OnGatewayDisconnect,
   ConnectedSocket,
+  MessageBody,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { MatchmakingService } from './matchmaking.service';
@@ -61,7 +62,10 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
   }
 
   @SubscribeMessage(SocketEvents.JOIN_QUEUE)
-  async handleJoinQueue(@ConnectedSocket() client: Socket) {
+  async handleJoinQueue(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { peerId: string },
+  ) {
     try {
       // Get user from database
       const user = await this.prisma.user.findUnique({
@@ -73,8 +77,14 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
         return;
       }
 
+      // Update user with peerId
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { peerId: data.peerId },
+      });
+
       // Add to queue
-      this.matchmakingService.addToQueue(client.id, user.id);
+      this.matchmakingService.addToQueue(client.id, user.id, data.peerId);
 
       // Send queue status
       client.emit(SocketEvents.QUEUE_STATUS, {
@@ -101,16 +111,16 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     const match = await this.matchmakingService.findMatch();
 
     if (match) {
-      // Notify both players
+      // Notify both players with their opponent's Peer ID
       this.server.to(match.player1.socketId).emit(SocketEvents.MATCH_FOUND, {
         gameId: match.gameId,
-        opponentId: match.player2.userId,
+        opponentId: match.player2.peerId, // Utiliser le Peer ID au lieu du User ID
         isInitiator: true, // Player 1 will initiate WebRTC connection
       });
 
       this.server.to(match.player2.socketId).emit(SocketEvents.MATCH_FOUND, {
         gameId: match.gameId,
-        opponentId: match.player1.userId,
+        opponentId: match.player1.peerId, // Utiliser le Peer ID au lieu du User ID
         isInitiator: false,
       });
 

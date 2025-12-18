@@ -9,15 +9,16 @@ export class MatchmakingService {
 
   constructor(private prisma: PrismaService) {}
 
-  addToQueue(socketId: string, userId: string): QueuePlayer {
+  addToQueue(socketId: string, userId: string, peerId?: string): QueuePlayer {
     const player: QueuePlayer = {
       socketId,
       userId,
+      peerId,
       joinedAt: new Date(),
     };
 
     this.queue.push(player);
-    console.log(`✅ Player ${socketId} joined queue. Queue size: ${this.queue.length}`);
+    console.log(`✅ Player ${socketId} (Peer: ${peerId}) joined queue. Queue size: ${this.queue.length}`);
 
     return player;
   }

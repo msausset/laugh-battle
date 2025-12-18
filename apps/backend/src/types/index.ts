@@ -27,6 +27,7 @@ export enum SocketEvents {
 export interface QueuePlayer {
   socketId: string;
   userId: string;
+  peerId?: string;  // Peer ID pour WebRTC
   joinedAt: Date;
 }
 

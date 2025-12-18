@@ -86,8 +86,12 @@ export default function GamePage() {
   };
 
   const handleRandomMatchmaking = () => {
+    if (!myPeerId) {
+      console.error('❌ Peer ID non disponible');
+      return;
+    }
     console.log('🎲 Démarrage du matchmaking aléatoire...');
-    joinQueue();
+    joinQueue(myPeerId);
     setScreenMode('searching');
   };
 

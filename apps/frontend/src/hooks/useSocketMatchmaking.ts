@@ -108,10 +108,10 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
     };
   }, []); // Pas de dépendances - on se connecte une seule fois
 
-  const joinQueue = () => {
+  const joinQueue = (peerId: string) => {
     if (socketRef.current?.connected) {
-      console.log('🔍 Rejoindre la queue de matchmaking...');
-      socketRef.current.emit(SocketEvents.JOIN_QUEUE);
+      console.log('🔍 Rejoindre la queue de matchmaking avec Peer ID:', peerId);
+      socketRef.current.emit(SocketEvents.JOIN_QUEUE, { peerId });
     } else {
       console.error('❌ Socket non connecté');
     }
