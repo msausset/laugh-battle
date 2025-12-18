@@ -45,7 +45,6 @@ export default function VideoPlayer({
       }
 
       currentStreamId.current = stream.id;
-      setLoadFailed(false); // Réinitialiser l'état d'échec
       console.log(`[${label}] ✅ Assignation stream au srcObject`);
       console.log(`[${label}] Stream details:`, {
         id: stream.id,
@@ -56,7 +55,6 @@ export default function VideoPlayer({
 
       // Vérifier si les tracks vidéo sont mutés
       const videoTracks = stream.getVideoTracks();
-      const unmuteHandlers: Array<{ track: MediaStreamTrack; handler: () => void }> = [];
 
       videoTracks.forEach((track, index) => {
         console.log(`[${label}] 📹 Track vidéo ${index}:`, {
@@ -65,27 +63,6 @@ export default function VideoPlayer({
           readyState: track.readyState,
           label: track.label,
         });
-
-        // Toujours écouter unmute, même si le track n'est pas muted initialement
-        // car il peut devenir muted dynamiquement
-        const handleUnmute = () => {
-          console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - réassignation du stream pour charger les données!`);
-
-          // Réassigner le stream pour forcer le rechargement avec les nouvelles données
-          videoElement.srcObject = null;
-          setTimeout(() => {
-            videoElement.srcObject = stream;
-            videoElement.play()
-              .then(() => {
-                console.log(`[${label}] ✅ Vidéo rechargée après unmute avec succès`);
-                setLoadFailed(false); // Réinitialiser l'état d'échec
-              })
-              .catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
-          }, 100);
-        };
-
-        track.addEventListener('unmute', handleUnmute);
-        unmuteHandlers.push({ track, handler: handleUnmute });
 
         if (track.muted) {
           console.warn(`[${label}] ⚠️ ATTENTION: Track vidéo ${index} est MUTED initialement - en attente de données vidéo...`);
@@ -100,6 +77,7 @@ export default function VideoPlayer({
       const handleLoadedMetadata = () => {
         console.log(`[${label}] 📊 Métadonnées chargées, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
         if (loadTimeoutId) clearTimeout(loadTimeoutId);
+        setLoadFailed(false); // Réinitialiser l'état d'échec
         videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après metadata:`, e));
       };
 
@@ -129,6 +107,7 @@ export default function VideoPlayer({
       const handleCanPlay = () => {
         console.log(`[${label}] ▶️ Vidéo prête à être lue (canplay)`);
         if (loadTimeoutId) clearTimeout(loadTimeoutId);
+        setLoadFailed(false); // Réinitialiser l'état d'échec
       };
 
       const handleStalled = () => {
@@ -169,6 +148,7 @@ export default function VideoPlayer({
         playPromise
           .then(() => {
             console.log(`[${label}] ✅ Lecture démarrée`);
+            setLoadFailed(false); // Réinitialiser l'état d'échec
             console.log(`[${label}] Video state:`, {
               paused: videoElement.paused,
               readyState: videoElement.readyState,
@@ -191,11 +171,6 @@ export default function VideoPlayer({
         if (loadTimeoutId) {
           clearTimeout(loadTimeoutId);
         }
-
-        // Retirer les listeners unmute des tracks
-        unmuteHandlers.forEach(({ track, handler }) => {
-          track.removeEventListener('unmute', handler);
-        });
 
         // Retirer tous les listeners vidéo
         videoElement.removeEventListener('loadstart', handleLoadStart);
