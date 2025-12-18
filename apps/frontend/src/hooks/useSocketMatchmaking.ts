@@ -41,6 +41,18 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
   const [queueSize, setQueueSize] = useState(0);
   const [matchData, setMatchData] = useState<MatchFoundData | null>(null);
 
+  // Stocker les callbacks dans des refs pour éviter les reconnexions
+  const onMatchFoundRef = useRef(options.onMatchFound);
+  const onGameStartRef = useRef(options.onGameStart);
+  const onErrorRef = useRef(options.onError);
+
+  // Mettre à jour les refs quand les callbacks changent
+  useEffect(() => {
+    onMatchFoundRef.current = options.onMatchFound;
+    onGameStartRef.current = options.onGameStart;
+    onErrorRef.current = options.onError;
+  }, [options.onMatchFound, options.onGameStart, options.onError]);
+
   useEffect(() => {
     // Créer la connexion socket
     const socket = io(BACKEND_URL, {
@@ -75,17 +87,17 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
       console.log('🎮 Match trouvé!', data);
       setMatchData(data);
       setIsInQueue(false);
-      options.onMatchFound?.(data);
+      onMatchFoundRef.current?.(data);
     });
 
     socket.on(SocketEvents.GAME_START, (data: { gameId: string }) => {
       console.log('🎮 La partie commence!', data);
-      options.onGameStart?.(data.gameId);
+      onGameStartRef.current?.(data.gameId);
     });
 
     socket.on(SocketEvents.ERROR, (data: { message: string }) => {
       console.error('❌ Erreur socket:', data.message);
-      options.onError?.(data.message);
+      onErrorRef.current?.(data.message);
     });
 
     // Cleanup
@@ -94,7 +106,7 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
         socket.disconnect();
       }
     };
-  }, [options.onMatchFound, options.onGameStart, options.onError]);
+  }, []); // Pas de dépendances - on se connecte une seule fois
 
   const joinQueue = () => {
     if (socketRef.current?.connected) {
