@@ -178,20 +178,26 @@ export default function VideoPlayer({
 
       // Cleanup
       return () => {
-        console.log(`[${label}] Cleanup useEffect`);
+        console.log(`[${label}] Cleanup useEffect - srcObject est toujours le même:`, videoElement.srcObject === stream);
 
         // Annuler le timeout s'il existe
         if (loadTimeoutId) {
           clearTimeout(loadTimeoutId);
         }
 
-        // Retirer tous les listeners vidéo
-        videoElement.removeEventListener('loadstart', handleLoadStart);
-        videoElement.removeEventListener('loadeddata', handleLoadedData);
-        videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
-        videoElement.removeEventListener('canplay', handleCanPlay);
-        videoElement.removeEventListener('stalled', handleStalled);
-        videoElement.removeEventListener('suspend', handleSuspend);
+        // Ne retirer les listeners que si le stream va vraiment changer
+        // Si srcObject est toujours le même stream, garder les listeners
+        if (videoElement.srcObject !== stream) {
+          console.log(`[${label}] Retrait des listeners car le stream va changer`);
+          videoElement.removeEventListener('loadstart', handleLoadStart);
+          videoElement.removeEventListener('loadeddata', handleLoadedData);
+          videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
+          videoElement.removeEventListener('canplay', handleCanPlay);
+          videoElement.removeEventListener('stalled', handleStalled);
+          videoElement.removeEventListener('suspend', handleSuspend);
+        } else {
+          console.log(`[${label}] Conservation des listeners car même stream`);
+        }
       };
     } else {
       console.log(`[${label}] ⚠️ Pas de stream à assigner`);
