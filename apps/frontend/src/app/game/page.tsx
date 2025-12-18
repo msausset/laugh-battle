@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeerMatchmaking } from '@/hooks/usePeerMatchmaking';
+import { useSocketMatchmaking } from '@/hooks/useSocketMatchmaking';
 import VideoPlayer from '@/components/VideoPlayer';
 import GameControls from '@/components/GameControls';
 
-type ScreenMode = 'menu' | 'waiting' | 'playing';
+type ScreenMode = 'menu' | 'waiting' | 'searching' | 'playing';
 
 export default function GamePage() {
   const router = useRouter();
@@ -20,7 +21,6 @@ export default function GamePage() {
     isConnected,
     myPeerId,
     roomCode,
-    isSearching,
     createRoom,
     joinRoom,
     disconnect,
@@ -34,8 +34,45 @@ export default function GamePage() {
     },
   });
 
+  // Hook pour le matchmaking aléatoire via WebSocket
+  const {
+    isInQueue,
+    queueSize,
+    joinQueue,
+    leaveQueue,
+  } = useSocketMatchmaking({
+    onMatchFound: (data) => {
+      console.log('🎮 Match trouvé via socket!', data);
+      console.log('Mon Peer ID:', myPeerId);
+      console.log('Opponent ID:', data.opponentId);
+
+      // Pour le matchmaking aléatoire, on utilise l'opponentId comme PeerID
+      // L'initiateur crée la room et attend
+      if (data.isInitiator) {
+        console.log('🎯 Je suis l\'initiateur, création de la room');
+        createRoom();
+        setScreenMode('waiting');
+      } else {
+        // L'autre joueur rejoint la room de l'initiateur
+        console.log('🔗 Je rejoins la room de l\'adversaire');
+        // On attend un peu que l'initiateur crée sa room
+        setTimeout(() => {
+          joinRoom(data.opponentId);
+          setScreenMode('waiting');
+        }, 2000);
+      }
+    },
+    onGameStart: (gameId) => {
+      console.log('🎮 Partie démarrée:', gameId);
+    },
+    onError: (message) => {
+      alert(`Erreur: ${message}`);
+      setScreenMode('menu');
+    },
+  });
+
   const handleCreateRoom = () => {
-    const code = createRoom();
+    createRoom();
     setScreenMode('waiting');
   };
 
@@ -46,6 +83,12 @@ export default function GamePage() {
     }
     joinRoom(peerIdInput.trim());
     setScreenMode('waiting');
+  };
+
+  const handleRandomMatchmaking = () => {
+    console.log('🎲 Démarrage du matchmaking aléatoire...');
+    joinQueue();
+    setScreenMode('searching');
   };
 
   const handleILaughed = () => {
@@ -94,9 +137,24 @@ export default function GamePage() {
           </h1>
 
           <div className="space-y-4">
+            {/* Matchmaking aléatoire */}
+            <div className="bg-gradient-to-br from-primary-500/20 to-primary-600/20 backdrop-blur-sm rounded-xl p-6 border-2 border-primary-500">
+              <h2 className="text-xl font-semibold mb-3">🎲 Matchmaking Aléatoire</h2>
+              <p className="text-gray-400 text-sm mb-4">
+                Trouvez un adversaire aléatoire et commencez à jouer immédiatement
+              </p>
+              <button
+                onClick={handleRandomMatchmaking}
+                disabled={!myPeerId}
+                className="w-full px-6 py-3 bg-gradient-to-r from-primary-500 to-primary-600 hover:from-primary-600 hover:to-primary-700 rounded-lg font-semibold transition-all transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {myPeerId ? '🎮 Trouver un adversaire' : 'Chargement...'}
+              </button>
+            </div>
+
             {/* Créer une room */}
             <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700">
-              <h2 className="text-xl font-semibold mb-3">Créer une partie</h2>
+              <h2 className="text-xl font-semibold mb-3">Créer une partie privée</h2>
               <p className="text-gray-400 text-sm mb-4">
                 Créez une room et partagez votre Peer ID avec un ami
               </p>
@@ -146,6 +204,58 @@ export default function GamePage() {
               ← Retour à l'accueil
             </button>
           </div>
+        </div>
+      </main>
+    );
+  }
+
+  // Écran de recherche de match aléatoire
+  if (screenMode === 'searching') {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="mb-8">
+            <div className="relative w-32 h-32 mx-auto mb-6">
+              <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-75"></div>
+              <div className="relative flex items-center justify-center w-32 h-32 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full">
+                <span className="text-5xl">🎲</span>
+              </div>
+            </div>
+
+            <h1 className="text-3xl font-bold mb-4">
+              Recherche d'un adversaire...
+            </h1>
+
+            <div className="mb-6 p-4 bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-700">
+              <p className="text-gray-400 text-sm mb-2">
+                Joueurs en recherche
+              </p>
+              <p className="text-4xl font-bold text-primary-400">
+                {isInQueue ? queueSize + 1 : queueSize}
+              </p>
+            </div>
+
+            <div className="space-y-2 text-gray-400 text-sm">
+              <p className="flex items-center justify-center gap-2">
+                <span className="animate-pulse">🟢</span>
+                Connecté au serveur
+              </p>
+              <p className="flex items-center justify-center gap-2">
+                <span className="animate-pulse">🔍</span>
+                Recherche en cours...
+              </p>
+            </div>
+          </div>
+
+          <button
+            onClick={() => {
+              leaveQueue();
+              setScreenMode('menu');
+            }}
+            className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition"
+          >
+            Annuler la recherche
+          </button>
         </div>
       </main>
     );
