@@ -33,9 +33,9 @@ export default function VideoPlayer({
       const videoTrack = stream.getVideoTracks()[0];
       const isSameStreamObject = videoElement.srcObject === stream;
 
-      // Skip seulement si srcObject est déjà assigné au bon stream ET que le track n'est pas muted ET que la vidéo est en cours de lecture
-      if (isSameStreamObject && videoTrack && !videoTrack.muted && !videoElement.paused) {
-        console.log(`[${label}] ⏭️ Stream déjà assigné et en lecture, skip`);
+      // Skip seulement si srcObject est déjà assigné au bon stream ET que le track n'est pas muted ET que readyState >= 2 (HAVE_CURRENT_DATA)
+      if (isSameStreamObject && videoTrack && !videoTrack.muted && videoElement.readyState >= 2) {
+        console.log(`[${label}] ⏭️ Stream déjà assigné et en lecture (readyState: ${videoElement.readyState}), skip`);
         return;
       }
 
