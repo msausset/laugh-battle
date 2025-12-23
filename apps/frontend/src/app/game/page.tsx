@@ -131,13 +131,6 @@ export default function GamePage() {
     });
   }, [localStream]);
 
-  // Passer automatiquement en mode 'playing' quand la connexion est établie
-  useEffect(() => {
-    if (isConnected && remoteStream && screenMode === 'waiting') {
-      console.log('🎮 Connexion établie, passage en mode playing');
-      setScreenMode('playing');
-    }
-  }, [isConnected, remoteStream, screenMode]);
 
   // Menu principal - Créer ou rejoindre
   if (screenMode === 'menu') {
