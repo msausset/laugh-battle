@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePeerMatchmaking } from '@/hooks/usePeerMatchmaking';
 import { useSocketMatchmaking } from '@/hooks/useSocketMatchmaking';
@@ -62,11 +62,36 @@ export default function GamePage() {
     }
   }, [emitPlayerLaughed]);
 
-  const { isModelLoaded, smileConfidence } = useFaceDetection({
+  const { isModelLoaded, smileConfidence, faceDetected } = useFaceDetection({
     stream: localStream,
     onLaughDetected: handleLaughDetected,
+    onNoFaceDetected: handleLaughDetected,
     enabled: screenMode === 'playing',
   });
+
+  // Connexion perdue pendant 2s → défaite
+  const connectionLostTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (screenMode !== 'playing') return;
+
+    if (!isConnected) {
+      connectionLostTimerRef.current = setTimeout(() => {
+        handleLaughDetected();
+      }, 2000);
+    } else {
+      if (connectionLostTimerRef.current) {
+        clearTimeout(connectionLostTimerRef.current);
+        connectionLostTimerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (connectionLostTimerRef.current) {
+        clearTimeout(connectionLostTimerRef.current);
+        connectionLostTimerRef.current = null;
+      }
+    };
+  }, [isConnected, screenMode, handleLaughDetected]);
 
   const handleRandomMatchmaking = () => {
     if (!myPeerId) return;
@@ -280,17 +305,25 @@ export default function GamePage() {
       </div>
 
       {/* Indicateur de détection */}
-      <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700">
+      <div className={`backdrop-blur-sm rounded-xl p-4 border transition-colors ${
+        isModelLoaded && !faceDetected
+          ? 'bg-red-900/40 border-red-500 animate-pulse'
+          : 'bg-gray-800/50 border-gray-700'
+      }`}>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-400">
-              {!isModelLoaded ? '⏳ Chargement de la détection...' : '👁️ Détection du sourire active'}
-            </p>
+            {!isModelLoaded ? (
+              <p className="text-sm text-gray-400">⏳ Chargement de la détection...</p>
+            ) : !faceDetected ? (
+              <p className="text-sm text-red-400 font-semibold">⚠️ Visage non détecté — reviens dans le cadre !</p>
+            ) : (
+              <p className="text-sm text-gray-400">👁️ Détection du sourire active</p>
+            )}
             <p className="text-xs text-gray-500 mt-1">
-              Garde ton sérieux ! Le premier qui rit perd.
+              {!isConnected ? '🔴 Connexion perdue...' : 'Garde ton sérieux ! Le premier qui rit perd.'}
             </p>
           </div>
-          {isModelLoaded && (
+          {isModelLoaded && faceDetected && (
             <div className="text-right">
               <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
                 <div
