@@ -61,6 +61,15 @@ export function useFaceDetection({
     }
   }, [stream]);
 
+  // Réinitialiser quand la détection est réactivée (nouvelle partie)
+  useEffect(() => {
+    if (enabled) {
+      hasTriggeredRef.current = false;
+      smilingStartRef.current = null;
+      setSmileConfidence(0);
+    }
+  }, [enabled]);
+
   // Lancer la détection quand modèles + stream + enabled
   useEffect(() => {
     if (!isModelLoaded || !enabled || hasTriggeredRef.current) return;
