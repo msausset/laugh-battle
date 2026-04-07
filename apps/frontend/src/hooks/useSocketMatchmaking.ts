@@ -4,16 +4,13 @@ import { io, Socket } from 'socket.io-client';
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:3001';
 
 export enum SocketEvents {
-  // Matchmaking
   JOIN_QUEUE = 'join_queue',
   LEAVE_QUEUE = 'leave_queue',
   MATCH_FOUND = 'match_found',
   QUEUE_STATUS = 'queue_status',
-
-  // Game
   GAME_START = 'game_start',
-
-  // Connection
+  PLAYER_LAUGHED = 'player_laughed',
+  GAME_END = 'game_end',
   ERROR = 'error',
 }
 
@@ -28,9 +25,15 @@ interface QueueStatusData {
   queueSize: number;
 }
 
+interface GameEndData {
+  gameId: string;
+  result: 'win' | 'lose';
+}
+
 interface UseSocketMatchmakingOptions {
   onMatchFound?: (data: MatchFoundData) => void;
   onGameStart?: (gameId: string) => void;
+  onGameEnd?: (data: GameEndData) => void;
   onError?: (message: string) => void;
 }
 
@@ -41,20 +44,19 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
   const [queueSize, setQueueSize] = useState(0);
   const [matchData, setMatchData] = useState<MatchFoundData | null>(null);
 
-  // Stocker les callbacks dans des refs pour éviter les reconnexions
   const onMatchFoundRef = useRef(options.onMatchFound);
   const onGameStartRef = useRef(options.onGameStart);
+  const onGameEndRef = useRef(options.onGameEnd);
   const onErrorRef = useRef(options.onError);
 
-  // Mettre à jour les refs quand les callbacks changent
   useEffect(() => {
     onMatchFoundRef.current = options.onMatchFound;
     onGameStartRef.current = options.onGameStart;
+    onGameEndRef.current = options.onGameEnd;
     onErrorRef.current = options.onError;
-  }, [options.onMatchFound, options.onGameStart, options.onError]);
+  }, [options.onMatchFound, options.onGameStart, options.onGameEnd, options.onError]);
 
   useEffect(() => {
-    // Créer la connexion socket
     const socket = io(BACKEND_URL, {
       transports: ['websocket'],
       reconnection: true,
@@ -64,7 +66,6 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
 
     socketRef.current = socket;
 
-    // Événements de connexion
     socket.on('connect', () => {
       console.log('✅ Connecté au serveur de matchmaking');
       setIsConnected(true);
@@ -76,9 +77,7 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
       setIsInQueue(false);
     });
 
-    // Événements de matchmaking
     socket.on(SocketEvents.QUEUE_STATUS, (data: QueueStatusData) => {
-      console.log('📊 Statut de la queue:', data);
       setIsInQueue(data.inQueue);
       setQueueSize(data.queueSize);
     });
@@ -91,8 +90,12 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
     });
 
     socket.on(SocketEvents.GAME_START, (data: { gameId: string }) => {
-      console.log('🎮 La partie commence!', data);
       onGameStartRef.current?.(data.gameId);
+    });
+
+    socket.on(SocketEvents.GAME_END, (data: GameEndData) => {
+      console.log('🏁 Partie terminée:', data);
+      onGameEndRef.current?.(data);
     });
 
     socket.on(SocketEvents.ERROR, (data: { message: string }) => {
@@ -100,27 +103,27 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
       onErrorRef.current?.(data.message);
     });
 
-    // Cleanup
     return () => {
-      if (socket) {
-        socket.disconnect();
-      }
+      socket.disconnect();
     };
-  }, []); // Pas de dépendances - on se connecte une seule fois
+  }, []);
 
   const joinQueue = (peerId: string) => {
     if (socketRef.current?.connected) {
-      console.log('🔍 Rejoindre la queue de matchmaking avec Peer ID:', peerId);
       socketRef.current.emit(SocketEvents.JOIN_QUEUE, { peerId });
-    } else {
-      console.error('❌ Socket non connecté');
     }
   };
 
   const leaveQueue = () => {
     if (socketRef.current?.connected) {
-      console.log('🚪 Quitter la queue de matchmaking...');
       socketRef.current.emit(SocketEvents.LEAVE_QUEUE);
+    }
+  };
+
+  const emitPlayerLaughed = (gameId: string) => {
+    if (socketRef.current?.connected) {
+      console.log('😂 Émission player_laughed pour game:', gameId);
+      socketRef.current.emit(SocketEvents.PLAYER_LAUGHED, { gameId });
     }
   };
 
@@ -131,6 +134,6 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
     matchData,
     joinQueue,
     leaveQueue,
-    socket: socketRef.current,
+    emitPlayerLaughed,
   };
 }

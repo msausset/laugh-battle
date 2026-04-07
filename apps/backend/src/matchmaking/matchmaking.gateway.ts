@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { MatchmakingService } from './matchmaking.service';
 import { SocketEvents } from '../types';
 import { PrismaService } from '../prisma/prisma.service';
+import { GameService } from '../game/game.service';
 
 @WebSocketGateway({
   cors: {
@@ -27,6 +28,7 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
   constructor(
     private matchmakingService: MatchmakingService,
     private prisma: PrismaService,
+    private gameService: GameService,
   ) {
     // Run matchmaking every second
     this.matchmakingInterval = setInterval(() => {
@@ -111,6 +113,15 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     const match = await this.matchmakingService.findMatch();
 
     if (match) {
+      // Register game state so GameGateway can handle player_laughed
+      this.gameService.registerGame(
+        match.gameId,
+        match.player1.userId,
+        match.player2.userId,
+        match.player1.socketId,
+        match.player2.socketId,
+      );
+
       // Notify both players with their opponent's Peer ID
       this.server.to(match.player1.socketId).emit(SocketEvents.MATCH_FOUND, {
         gameId: match.gameId,

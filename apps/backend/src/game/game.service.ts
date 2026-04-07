@@ -9,6 +9,19 @@ export class GameService {
 
   constructor(private prisma: PrismaService) {}
 
+  registerGame(gameId: string, player1Id: string, player2Id: string, player1SocketId: string, player2SocketId: string): void {
+    const gameState: GameState = {
+      gameId,
+      player1Id,
+      player2Id,
+      player1SocketId,
+      player2SocketId,
+      status: 'playing',
+      startedAt: new Date(),
+    };
+    this.activeGames.set(gameId, gameState);
+  }
+
   async createGame(player1Id: string, player2Id: string): Promise<GameState> {
     const game = await this.prisma.game.create({
       data: {

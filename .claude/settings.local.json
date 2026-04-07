@@ -12,7 +12,16 @@
       "Bash(netstat:*)",
       "Bash(findstr:*)",
       "Bash(taskkill /F /PID 25916)",
-      "Bash(taskkill //F //PID 25916)"
+      "Bash(taskkill //F //PID 25916)",
+      "Bash(vercel ls:*)",
+      "Bash(cp \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\node_modules\\\\face-api.js\\\\weights\\\\tiny_face_detector_model-weights_manifest.json\" \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\public\\\\models\\\\\" && cp \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\node_modules\\\\face-api.js\\\\weights\\\\tiny_face_detector_model-shard1\" \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\public\\\\models\\\\\")",
+      "Bash(cp \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\node_modules\\\\face-api.js\\\\weights\\\\face_expression_model-weights_manifest.json\" \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\public\\\\models\\\\\" && cp \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\node_modules\\\\face-api.js\\\\weights\\\\face_expression_model-shard1\" \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\public\\\\models\\\\\")",
+      "Bash(node -e \"console.log\\(require\\('c:/Users/maxim/Documents/CODE/REACT/laugh-battle/node_modules/face-api.js/package.json'\\).version\\)\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\maxim\\\\Documents\\\\CODE\\\\REACT\\\\laugh-battle\\\\apps\\\\frontend\\\\public\\\\models\")",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/tiny_face_detector_model-weights_manifest.json\" -o tiny_face_detector_model-weights_manifest.json)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/tiny_face_detector_model-shard1\" -o tiny_face_detector_model-shard1)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_expression_model-weights_manifest.json\" -o face_expression_model-weights_manifest.json)",
+      "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_expression_model-shard1\" -o face_expression_model-shard1)"
     ]
   }
 }
