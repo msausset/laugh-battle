@@ -15,6 +15,7 @@ export default function GamePage() {
   const [peerIdInput, setPeerIdInput] = useState('');
   const [gameResult, setGameResult] = useState<'win' | 'lose' | null>(null);
   const gameIdRef = useRef<string | null>(null);
+  const isLeavingRef = useRef(false);
 
   const {
     localStream,
@@ -31,10 +32,11 @@ export default function GamePage() {
     },
   });
 
-  const { isInQueue, queueSize, joinQueue, leaveQueue, emitPlayerLaughed } =
+  const { isInQueue, queueSize, joinQueue, leaveQueue, emitPlayerLaughed, emitQuitGame } =
     useSocketMatchmaking({
       onMatchFound: (data) => {
         gameIdRef.current = data.gameId;
+        isLeavingRef.current = false;
         if (data.isInitiator) {
           createRoom();
           setScreenMode('waiting');
@@ -46,6 +48,7 @@ export default function GamePage() {
         }
       },
       onGameEnd: (data) => {
+        if (isLeavingRef.current) return; // on a déjà quitté, ignorer
         setGameResult(data.result);
         setScreenMode('result');
         disconnect();
@@ -308,11 +311,18 @@ export default function GamePage() {
         <div className="flex gap-4 items-center">
           {isConnected && <span className="text-green-400">🟢 Connecté</span>}
           <button
-            onClick={() => { disconnect(); setScreenMode('menu'); }}
+            onClick={() => {
+              isLeavingRef.current = true;
+              if (gameIdRef.current) emitQuitGame(gameIdRef.current);
+              disconnect();
+              gameIdRef.current = null;
+              setScreenMode('menu');
+            }}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition"
           >
             Quitter
           </button>
+
         </div>
       </div>
 

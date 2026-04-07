@@ -68,6 +68,26 @@ export class GameGateway {
     console.log(`🏆 Winner: ${winnerId}`);
   }
 
+  @SubscribeMessage(SocketEvents.QUIT_GAME)
+  async handleQuitGame(
+    @ConnectedSocket() client: Socket,
+    @MessageBody() data: { gameId: string },
+  ) {
+    const game = this.gameService.getGame(data.gameId);
+    if (!game || game.status !== 'playing') return;
+
+    // Marquer comme terminée immédiatement pour éviter les doublons
+    game.status = 'finished';
+
+    const opponentSocketId =
+      game.player1SocketId === client.id ? game.player2SocketId : game.player1SocketId;
+
+    // L'adversaire (qui reste) gagne
+    this.server.to(opponentSocketId).emit(SocketEvents.OPPONENT_LEFT);
+
+    console.log(`🚪 Player ${client.id} quit game ${data.gameId}`);
+  }
+
   @SubscribeMessage(SocketEvents.REMATCH_REQUEST)
   handleRematchRequest(
     @ConnectedSocket() client: Socket,

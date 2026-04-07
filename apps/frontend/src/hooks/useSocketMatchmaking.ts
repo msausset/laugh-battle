@@ -10,6 +10,7 @@ export enum SocketEvents {
   QUEUE_STATUS = 'queue_status',
   GAME_START = 'game_start',
   PLAYER_LAUGHED = 'player_laughed',
+  QUIT_GAME = 'quit_game',
   GAME_END = 'game_end',
   OPPONENT_LEFT = 'opponent_left',
   ERROR = 'error',
@@ -136,6 +137,12 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
     }
   };
 
+  const emitQuitGame = (gameId: string) => {
+    if (socketRef.current?.connected) {
+      socketRef.current.emit(SocketEvents.QUIT_GAME, { gameId });
+    }
+  };
+
   return {
     isConnected,
     isInQueue,
@@ -144,5 +151,6 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
     joinQueue,
     leaveQueue,
     emitPlayerLaughed,
+    emitQuitGame,
   };
 }

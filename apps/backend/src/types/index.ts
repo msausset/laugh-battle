@@ -13,6 +13,7 @@ export enum SocketEvents {
   // Game
   GAME_START = 'game_start',
   PLAYER_LAUGHED = 'player_laughed',
+  QUIT_GAME = 'quit_game',
   GAME_END = 'game_end',
   OPPONENT_LEFT = 'opponent_left',
   REMATCH_REQUEST = 'rematch_request',
