@@ -53,6 +53,20 @@ export class MatchmakingGateway implements OnGatewayConnection, OnGatewayDisconn
     // Remove from queue
     this.matchmakingService.removeFromQueue(client.id);
 
+    // Notify opponent if in an active game
+    const game = this.gameService.findGameBySocketId(client.id);
+    if (game) {
+      const opponentSocketId =
+        game.player1SocketId === client.id ? game.player2SocketId : game.player1SocketId;
+
+      this.server.to(opponentSocketId).emit(SocketEvents.OPPONENT_LEFT, {
+        gameId: game.gameId,
+      });
+
+      game.status = 'finished';
+      console.log(`🚪 Player ${client.id} left game ${game.gameId} — opponent notified`);
+    }
+
     // Clean up user from database
     try {
       await this.prisma.user.delete({

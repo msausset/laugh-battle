@@ -50,6 +50,18 @@ export default function GamePage() {
         setScreenMode('result');
         disconnect();
       },
+      onOpponentLeft: () => {
+        // Annuler le timer "connexion perdue" pour ne pas déclencher une défaite
+        if (connectionLostTimerRef.current) {
+          clearTimeout(connectionLostTimerRef.current);
+          connectionLostTimerRef.current = null;
+        }
+        disconnect();
+        gameIdRef.current = null;
+        // Victoire automatique + retour en matchmaking
+        setGameResult('win');
+        setScreenMode('result');
+      },
       onError: (message) => {
         alert(`Erreur: ${message}`);
         setScreenMode('menu');
@@ -265,7 +277,12 @@ export default function GamePage() {
               onClick={() => {
                 gameIdRef.current = null;
                 setGameResult(null);
-                setScreenMode('menu');
+                if (myPeerId) {
+                  joinQueue(myPeerId);
+                  setScreenMode('searching');
+                } else {
+                  setScreenMode('menu');
+                }
               }}
               className="px-6 py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-semibold transition"
             >

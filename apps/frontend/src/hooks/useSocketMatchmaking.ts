@@ -11,6 +11,7 @@ export enum SocketEvents {
   GAME_START = 'game_start',
   PLAYER_LAUGHED = 'player_laughed',
   GAME_END = 'game_end',
+  OPPONENT_LEFT = 'opponent_left',
   ERROR = 'error',
 }
 
@@ -34,6 +35,7 @@ interface UseSocketMatchmakingOptions {
   onMatchFound?: (data: MatchFoundData) => void;
   onGameStart?: (gameId: string) => void;
   onGameEnd?: (data: GameEndData) => void;
+  onOpponentLeft?: () => void;
   onError?: (message: string) => void;
 }
 
@@ -47,14 +49,16 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
   const onMatchFoundRef = useRef(options.onMatchFound);
   const onGameStartRef = useRef(options.onGameStart);
   const onGameEndRef = useRef(options.onGameEnd);
+  const onOpponentLeftRef = useRef(options.onOpponentLeft);
   const onErrorRef = useRef(options.onError);
 
   useEffect(() => {
     onMatchFoundRef.current = options.onMatchFound;
     onGameStartRef.current = options.onGameStart;
     onGameEndRef.current = options.onGameEnd;
+    onOpponentLeftRef.current = options.onOpponentLeft;
     onErrorRef.current = options.onError;
-  }, [options.onMatchFound, options.onGameStart, options.onGameEnd, options.onError]);
+  }, [options.onMatchFound, options.onGameStart, options.onGameEnd, options.onOpponentLeft, options.onError]);
 
   useEffect(() => {
     const socket = io(BACKEND_URL, {
@@ -96,6 +100,11 @@ export function useSocketMatchmaking(options: UseSocketMatchmakingOptions = {}) 
     socket.on(SocketEvents.GAME_END, (data: GameEndData) => {
       console.log('🏁 Partie terminée:', data);
       onGameEndRef.current?.(data);
+    });
+
+    socket.on(SocketEvents.OPPONENT_LEFT, () => {
+      console.log('🚪 Adversaire déconnecté');
+      onOpponentLeftRef.current?.();
     });
 
     socket.on(SocketEvents.ERROR, (data: { message: string }) => {

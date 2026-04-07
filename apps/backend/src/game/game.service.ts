@@ -50,6 +50,16 @@ export class GameService {
     return this.activeGames.get(gameId);
   }
 
+  findGameBySocketId(socketId: string): GameState | undefined {
+    for (const game of this.activeGames.values()) {
+      if (game.status === 'playing' &&
+         (game.player1SocketId === socketId || game.player2SocketId === socketId)) {
+        return game;
+      }
+    }
+    return undefined;
+  }
+
   async endGame(gameId: string, winnerId: string): Promise<void> {
     const game = this.activeGames.get(gameId);
     if (!game) return;
