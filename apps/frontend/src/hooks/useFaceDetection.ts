@@ -6,31 +6,34 @@ const SMILE_THRESHOLD = 0.75;
 const DETECTION_INTERVAL_MS = 200;
 const SUSTAINED_SMILE_MS = 800;
 const NO_FACE_TIMEOUT_MS = 3000;
-const NO_MOUTH_TIMEOUT_MS = 3000;
-// Seuil de variance des pixels de la zone bouche (std dev < seuil → région trop uniforme → couverte)
-const MOUTH_TEXTURE_THRESHOLD = 20;
 // Points 48–67 : bouche externe + interne (modèle 68 landmarks)
 const MOUTH_LANDMARK_INDICES = Array.from({ length: 20 }, (_, i) => i + 48);
 
-function isMouthOccluded(
+/**
+ * Calcule un score de visibilité de la bouche (0–100) basé sur la variance
+ * des pixels de la zone landmark. Purement informatif (mode entraînement).
+ * Pas utilisé comme signal de pénalité car trop sensible aux faux positifs
+ * (bouche fermée, lèvres claires, faible éclairage).
+ */
+function computeMouthVisibilityScore(
   video: HTMLVideoElement,
   canvas: HTMLCanvasElement,
   positions: faceapi.Point[]
-): boolean {
+): number {
   const ctx = canvas.getContext('2d', { willReadFrequently: true });
-  if (!ctx || video.videoWidth === 0) return false;
+  if (!ctx || video.videoWidth === 0) return 100;
 
   const mouthPts = MOUTH_LANDMARK_INDICES.map((i) => positions[i]);
   const xs = mouthPts.map((p) => p.x);
   const ys = mouthPts.map((p) => p.y);
 
-  const pad = 14;
+  const pad = 16;
   const x = Math.max(0, Math.min(...xs) - pad);
   const y = Math.max(0, Math.min(...ys) - pad);
   const w = Math.min(video.videoWidth - x, Math.max(...xs) - Math.min(...xs) + pad * 2);
   const h = Math.min(video.videoHeight - y, Math.max(...ys) - Math.min(...ys) + pad * 2);
 
-  if (w <= 4 || h <= 4) return false;
+  if (w <= 4 || h <= 4) return 100;
 
   canvas.width = Math.round(w * 0.5);
   canvas.height = Math.round(h * 0.5);
@@ -49,7 +52,8 @@ function isMouthOccluded(
 
   const mean = sum / n;
   const stdDev = Math.sqrt(Math.max(0, sumSq / n - mean * mean));
-  return stdDev < MOUTH_TEXTURE_THRESHOLD;
+  // Normaliser sur 0–100 (stdDev ~0 → 0, stdDev ~50+ → 100)
+  return Math.min(100, Math.round((stdDev / 40) * 100));
 }
 
 export function useFaceDetection({
@@ -66,13 +70,15 @@ export function useFaceDetection({
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [smileConfidence, setSmileConfidence] = useState(0);
   const [faceDetected, setFaceDetected] = useState(true);
+  // mouthDetected reflète uniquement la détection de visage (fiable)
+  // mouthVisibilityScore est informatif uniquement (entraînement)
   const [mouthDetected, setMouthDetected] = useState(true);
+  const [mouthVisibilityScore, setMouthVisibilityScore] = useState(100);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const smilingStartRef = useRef<number | null>(null);
   const noFaceStartRef = useRef<number | null>(null);
-  const noMouthStartRef = useRef<number | null>(null);
   const hasTriggeredRef = useRef(false);
   const onLaughRef = useRef(onLaughDetected);
   const onNoFaceRef = useRef(onNoFaceDetected);
@@ -127,10 +133,10 @@ export function useFaceDetection({
       hasTriggeredRef.current = false;
       smilingStartRef.current = null;
       noFaceStartRef.current = null;
-      noMouthStartRef.current = null;
       setSmileConfidence(0);
       setFaceDetected(true);
       setMouthDetected(true);
+      setMouthVisibilityScore(100);
     }
   }, [enabled]);
 
@@ -161,11 +167,11 @@ export function useFaceDetection({
         if (cancelled || hasTriggeredRef.current) return;
 
         if (!result) {
-          // Pas de visage
+          // Aucun visage détecté → timer de pénalité
           setFaceDetected(false);
           setMouthDetected(false);
+          setMouthVisibilityScore(0);
           smilingStartRef.current = null;
-          noMouthStartRef.current = null;
           setSmileConfidence(0);
 
           if (noFaceStartRef.current === null) {
@@ -176,44 +182,31 @@ export function useFaceDetection({
             return;
           }
         } else {
+          // Visage détecté → réinitialiser timer no-face
           setFaceDetected(true);
+          setMouthDetected(true);
           noFaceStartRef.current = null;
 
-          // Analyse des pixels de la zone bouche
-          const occluded = canvas
-            ? isMouthOccluded(video, canvas, result.landmarks.positions)
-            : false;
+          // Score de visibilité bouche (informatif, entraînement uniquement)
+          if (canvas) {
+            const score = computeMouthVisibilityScore(video, canvas, result.landmarks.positions);
+            setMouthVisibilityScore(score);
+          }
 
-          if (occluded) {
-            setMouthDetected(false);
-            smilingStartRef.current = null;
-            setSmileConfidence(0);
+          // Détection du sourire
+          const happy = result.expressions.happy ?? 0;
+          setSmileConfidence(Math.round(happy * 100));
 
-            if (noMouthStartRef.current === null) {
-              noMouthStartRef.current = Date.now();
-            } else if (Date.now() - noMouthStartRef.current >= NO_MOUTH_TIMEOUT_MS) {
+          if (happy >= SMILE_THRESHOLD) {
+            if (smilingStartRef.current === null) {
+              smilingStartRef.current = Date.now();
+            } else if (Date.now() - smilingStartRef.current >= SUSTAINED_SMILE_MS) {
               hasTriggeredRef.current = true;
-              onNoFaceRef.current?.();
+              onLaughRef.current();
               return;
             }
           } else {
-            setMouthDetected(true);
-            noMouthStartRef.current = null;
-
-            const happy = result.expressions.happy ?? 0;
-            setSmileConfidence(Math.round(happy * 100));
-
-            if (happy >= SMILE_THRESHOLD) {
-              if (smilingStartRef.current === null) {
-                smilingStartRef.current = Date.now();
-              } else if (Date.now() - smilingStartRef.current >= SUSTAINED_SMILE_MS) {
-                hasTriggeredRef.current = true;
-                onLaughRef.current();
-                return;
-              }
-            } else {
-              smilingStartRef.current = null;
-            }
+            smilingStartRef.current = null;
           }
         }
       } catch {
@@ -233,5 +226,5 @@ export function useFaceDetection({
     };
   }, [isModelLoaded, enabled]);
 
-  return { isModelLoaded, smileConfidence, faceDetected, mouthDetected };
+  return { isModelLoaded, smileConfidence, faceDetected, mouthDetected, mouthVisibilityScore };
 }
