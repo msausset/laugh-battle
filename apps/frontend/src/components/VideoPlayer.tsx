@@ -18,9 +18,14 @@ export default function VideoPlayer({
   const videoRef = useRef<HTMLVideoElement>(null);
   const currentStreamId = useRef<string | null>(null);
   const [loadFailed, setLoadFailed] = useState(false);
+  const [volume, setVolume] = useState(1);
 
-  // Log à chaque render
-  console.log(`[${label}] Render - stream:`, !!stream, 'isLoading:', isLoading);
+  // Synchroniser le volume sur l'élément vidéo
+  useEffect(() => {
+    if (videoRef.current && !isMuted) {
+      videoRef.current.volume = volume;
+    }
+  }, [volume, isMuted]);
 
   useEffect(() => {
     const videoElement = videoRef.current;
@@ -29,115 +34,61 @@ export default function VideoPlayer({
     if (!videoElement) return;
 
     if (stream) {
-      // Vérifier si le track vidéo est muted - si oui, attendre qu'il soit unmuted
       const videoTrack = stream.getVideoTracks()[0];
       const isSameStream = currentStreamId.current === stream.id;
 
-      // Skip seulement si c'est vraiment le même stream ET que le track n'est pas muted
       if (isSameStream && videoTrack && !videoTrack.muted) {
         console.log(`[${label}] ⏭️ Stream déjà assigné (même ID, track non muted), skip`);
         return;
       }
 
-      // Si le track est muted, on log mais on continue quand même pour setup les listeners
       if (videoTrack && videoTrack.muted) {
         console.log(`[${label}] ⚠️ Stream avec track MUTED, on assigne quand même en attendant unmute`);
       }
 
       currentStreamId.current = stream.id;
-      setLoadFailed(false); // Réinitialiser l'état d'échec
+      setLoadFailed(false);
       console.log(`[${label}] ✅ Assignation stream au srcObject`);
-      console.log(`[${label}] Stream details:`, {
-        id: stream.id,
-        active: stream.active,
-        videoTracks: stream.getVideoTracks().length,
-        audioTracks: stream.getAudioTracks().length,
-      });
 
-      // Vérifier si les tracks vidéo sont mutés
       const videoTracks = stream.getVideoTracks();
       const unmuteHandlers: Array<{ track: MediaStreamTrack; handler: () => void }> = [];
 
       videoTracks.forEach((track, index) => {
-        console.log(`[${label}] 📹 Track vidéo ${index}:`, {
-          enabled: track.enabled,
-          muted: track.muted,
-          readyState: track.readyState,
-          label: track.label,
-        });
-
-        // Toujours écouter unmute, même si le track n'est pas muted initialement
-        // car il peut devenir muted dynamiquement
         const handleUnmute = () => {
-          console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - réassignation du stream pour charger les données!`);
-
-          // Réassigner le stream pour forcer le rechargement avec les nouvelles données
+          console.log(`[${label}] 🎉 Track vidéo ${index} UNMUTED - réassignation du stream`);
           videoElement.srcObject = null;
           setTimeout(() => {
             videoElement.srcObject = stream;
             videoElement.play()
-              .then(() => {
-                console.log(`[${label}] ✅ Vidéo rechargée après unmute avec succès`);
-                setLoadFailed(false); // Réinitialiser l'état d'échec
-              })
+              .then(() => setLoadFailed(false))
               .catch(e => console.error(`[${label}] ❌ Erreur play après unmute:`, e));
           }, 100);
         };
 
         track.addEventListener('unmute', handleUnmute);
         unmuteHandlers.push({ track, handler: handleUnmute });
-
-        if (track.muted) {
-          console.warn(`[${label}] ⚠️ ATTENTION: Track vidéo ${index} est MUTED initialement - en attente de données vidéo...`);
-        }
       });
 
-      // Timeout pour détecter l'échec de chargement (une seule fois)
       let loadTimeoutId: NodeJS.Timeout | null = null;
       let hasLoadStarted = false;
 
-      // Ajouter des listeners pour diagnostiquer le chargement de la vidéo
       const handleLoadedMetadata = () => {
-        console.log(`[${label}] 📊 Métadonnées chargées, dimensions: ${videoElement.videoWidth}x${videoElement.videoHeight}`);
         if (loadTimeoutId) clearTimeout(loadTimeoutId);
         videoElement.play().catch(e => console.error(`[${label}] ❌ Erreur play après metadata:`, e));
       };
 
       const handleLoadStart = () => {
-        // Ne démarrer le timeout qu'une seule fois
-        if (hasLoadStarted) {
-          console.log(`[${label}] ⏭️ loadstart ignoré (déjà en cours)`);
-          return;
-        }
+        if (hasLoadStarted) return;
         hasLoadStarted = true;
-        console.log(`[${label}] 🔄 Début du chargement de la vidéo`);
-
-        // Si après 3 secondes les métadonnées ne sont pas chargées, marquer comme échec
         loadTimeoutId = setTimeout(() => {
-          if (videoElement.readyState === 0) {
-            console.error(`[${label}] ⚠️ Timeout: Métadonnées non chargées après 3s - échec du chargement`);
-            setLoadFailed(true);
-          }
+          if (videoElement.readyState === 0) setLoadFailed(true);
         }, 3000);
       };
 
-      const handleLoadedData = () => {
-        console.log(`[${label}] 📥 Premières données chargées`);
-        if (loadTimeoutId) clearTimeout(loadTimeoutId);
-      };
-
-      const handleCanPlay = () => {
-        console.log(`[${label}] ▶️ Vidéo prête à être lue (canplay)`);
-        if (loadTimeoutId) clearTimeout(loadTimeoutId);
-      };
-
-      const handleStalled = () => {
-        console.warn(`[${label}] ⏸️ Chargement bloqué (stalled)`);
-      };
-
-      const handleSuspend = () => {
-        console.warn(`[${label}] ⏸️ Chargement suspendu (suspend)`);
-      };
+      const handleLoadedData = () => { if (loadTimeoutId) clearTimeout(loadTimeoutId); };
+      const handleCanPlay = () => { if (loadTimeoutId) clearTimeout(loadTimeoutId); };
+      const handleStalled = () => console.warn(`[${label}] ⏸️ Chargement bloqué`);
+      const handleSuspend = () => console.warn(`[${label}] ⏸️ Chargement suspendu`);
 
       videoElement.addEventListener('loadstart', handleLoadStart);
       videoElement.addEventListener('loadeddata', handleLoadedData);
@@ -148,56 +99,16 @@ export default function VideoPlayer({
 
       videoElement.srcObject = stream;
 
-      // Vérifier que l'assignation a fonctionné
-      console.log(`[${label}] srcObject assigné:`, !!videoElement.srcObject);
-
-      // Diagnostic approfondi de l'état de la vidéo immédiatement après l'assignation
-      console.log(`[${label}] État initial de la vidéo:`, {
-        readyState: videoElement.readyState,
-        networkState: videoElement.networkState,
-        paused: videoElement.paused,
-        srcObject: !!videoElement.srcObject,
-        videoWidth: videoElement.videoWidth,
-        videoHeight: videoElement.videoHeight,
-      });
-
-      // Important: Ne PAS utiliser load() avec MediaStream, cela peut causer des problèmes
-      // Lancer directement la lecture
-      const playPromise = videoElement.play();
-
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log(`[${label}] ✅ Lecture démarrée`);
-            console.log(`[${label}] Video state:`, {
-              paused: videoElement.paused,
-              readyState: videoElement.readyState,
-              networkState: videoElement.networkState,
-              videoWidth: videoElement.videoWidth,
-              videoHeight: videoElement.videoHeight,
-            });
-          })
-          .catch(err => {
-            console.error(`[${label}] ❌ Erreur play:`, err);
-            setLoadFailed(true);
-          });
-      }
-
-      // Cleanup
-      return () => {
-        console.log(`[${label}] Cleanup useEffect`);
-
-        // Annuler le timeout s'il existe
-        if (loadTimeoutId) {
-          clearTimeout(loadTimeoutId);
-        }
-
-        // Retirer les listeners unmute des tracks
-        unmuteHandlers.forEach(({ track, handler }) => {
-          track.removeEventListener('unmute', handler);
+      videoElement.play()
+        .then(() => console.log(`[${label}] ✅ Lecture démarrée`))
+        .catch(err => {
+          console.error(`[${label}] ❌ Erreur play:`, err);
+          setLoadFailed(true);
         });
 
-        // Retirer tous les listeners vidéo
+      return () => {
+        if (loadTimeoutId) clearTimeout(loadTimeoutId);
+        unmuteHandlers.forEach(({ track, handler }) => track.removeEventListener('unmute', handler));
         videoElement.removeEventListener('loadstart', handleLoadStart);
         videoElement.removeEventListener('loadeddata', handleLoadedData);
         videoElement.removeEventListener('loadedmetadata', handleLoadedMetadata);
@@ -206,11 +117,12 @@ export default function VideoPlayer({
         videoElement.removeEventListener('suspend', handleSuspend);
       };
     } else {
-      console.log(`[${label}] ⚠️ Pas de stream à assigner`);
       videoElement.srcObject = null;
       currentStreamId.current = null;
     }
   }, [stream, label]);
+
+  const volumeIcon = volume === 0 ? '🔇' : volume < 0.5 ? '🔉' : '🔊';
 
   return (
     <div className="relative bg-gray-900 rounded-xl overflow-hidden aspect-video border-2 border-gray-700">
@@ -246,14 +158,25 @@ export default function VideoPlayer({
       )}
 
       {/* Label */}
-      <div className="absolute top-4 left-4 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-lg">
-        <span className="font-semibold">{label}</span>
+      <div className="absolute top-3 left-3 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-lg">
+        <span className="font-semibold text-sm">{label}</span>
       </div>
 
-      {/* Muted indicator */}
-      {isMuted && (
-        <div className="absolute top-4 right-4 px-3 py-1 bg-black/50 backdrop-blur-sm rounded-lg">
-          <span className="text-sm">🔇 Muet</span>
+      {/* Contrôle du volume (flux adversaire uniquement) */}
+      {!isMuted && stream && (
+        <div className="absolute bottom-0 left-0 right-0 px-3 py-2 bg-gradient-to-t from-black/70 to-transparent">
+          <div className="flex items-center gap-2">
+            <span className="text-base leading-none select-none">{volumeIcon}</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.05"
+              value={volume}
+              onChange={(e) => setVolume(parseFloat(e.target.value))}
+              className="flex-1 h-1 cursor-pointer accent-primary-400"
+            />
+          </div>
         </div>
       )}
     </div>

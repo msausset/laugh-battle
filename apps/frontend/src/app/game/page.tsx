@@ -70,8 +70,13 @@ export default function GamePage() {
         }
         disconnect();
         gameIdRef.current = null;
-        setGameResult('win');
-        setScreenMode('result');
+        // Relance directe en matchmaking sans passer par l'écran résultat
+        if (myPeerId) {
+          joinQueue(myPeerId);
+          setScreenMode('searching');
+        } else {
+          setScreenMode('menu');
+        }
       },
       onError: (message) => {
         alert(`Erreur: ${message}`);
