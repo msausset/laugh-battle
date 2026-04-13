@@ -17,6 +17,7 @@ export default function GamePage() {
   const [screenMode, setScreenMode] = useState<ScreenMode>('menu');
   const [peerIdInput, setPeerIdInput] = useState('');
   const [gameResult, setGameResult] = useState<'win' | 'lose' | null>(null);
+  const [opponentLeft, setOpponentLeft] = useState(false);
   const gameIdRef = useRef<string | null>(null);
   const isLeavingRef = useRef(false);
 
@@ -70,7 +71,7 @@ export default function GamePage() {
         }
         disconnect();
         gameIdRef.current = null;
-        // Relance directe en matchmaking sans passer par l'écran résultat
+        setOpponentLeft(true);
         if (myPeerId) {
           joinQueue(myPeerId);
           setScreenMode('searching');
@@ -165,6 +166,7 @@ export default function GamePage() {
 
   const handleRandomMatchmaking = () => {
     if (!myPeerId) return;
+    setOpponentLeft(false);
     joinQueue(myPeerId);
     setScreenMode('searching');
   };
@@ -539,6 +541,18 @@ export default function GamePage() {
     return (
       <main className="min-h-screen flex items-center justify-center p-4">
         <div className="max-w-md w-full text-center">
+
+          {/* Bannière adversaire parti */}
+          {opponentLeft && (
+            <div className="mb-6 flex items-center gap-3 px-4 py-3 bg-yellow-900/50 border border-yellow-600 rounded-xl text-left">
+              <span className="text-2xl flex-shrink-0">🏃</span>
+              <div>
+                <p className="text-yellow-300 font-semibold text-sm">Ton adversaire a quitté la partie</p>
+                <p className="text-yellow-500 text-xs mt-0.5">Recherche d&apos;un nouvel adversaire en cours...</p>
+              </div>
+            </div>
+          )}
+
           <div className="relative w-32 h-32 mx-auto mb-6">
             <div className="absolute inset-0 bg-primary-500 rounded-full animate-ping opacity-75"></div>
             <div className="relative flex items-center justify-center w-32 h-32 bg-gradient-to-br from-primary-500 to-primary-600 rounded-full">
@@ -551,7 +565,7 @@ export default function GamePage() {
             <p className="text-4xl font-bold text-primary-400">{queueSize}</p>
           </div>
           <button
-            onClick={() => { leaveQueue(); setScreenMode('menu'); }}
+            onClick={() => { leaveQueue(); setOpponentLeft(false); setScreenMode('menu'); }}
             className="px-6 py-3 bg-red-600 hover:bg-red-700 rounded-lg font-semibold transition"
           >
             Annuler
