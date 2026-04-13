@@ -23,6 +23,7 @@ export default function GamePage() {
     isConnected,
     myPeerId,
     roomCode,
+    mediaPermissionStatus,
     createRoom,
     joinRoom,
     disconnect,
@@ -77,7 +78,7 @@ export default function GamePage() {
     }
   }, [emitPlayerLaughed]);
 
-  const { isModelLoaded, smileConfidence, faceDetected } = useFaceDetection({
+  const { isModelLoaded, smileConfidence, faceDetected, mouthDetected } = useFaceDetection({
     stream: localStream,
     onLaughDetected: handleLaughDetected,
     onNoFaceDetected: handleLaughDetected,
@@ -124,6 +125,71 @@ export default function GamePage() {
     joinRoom(peerIdInput.trim());
     setScreenMode('waiting');
   };
+
+  // --- PERMISSIONS EN ATTENTE ---
+  if (screenMode === 'menu' && mediaPermissionStatus === 'pending') {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="relative w-32 h-32 mx-auto mb-6">
+            <div className="absolute inset-0 bg-yellow-500 rounded-full animate-ping opacity-50"></div>
+            <div className="relative flex items-center justify-center w-32 h-32 bg-gradient-to-br from-yellow-500 to-yellow-600 rounded-full">
+              <span className="text-5xl">📷</span>
+            </div>
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Autorisation requise</h1>
+          <p className="text-gray-400 mb-6">
+            Autorise l&apos;accès à ta <span className="text-white font-semibold">caméra</span> et à ton{' '}
+            <span className="text-white font-semibold">microphone</span> dans la fenêtre de ton navigateur pour accéder au matchmaking.
+          </p>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-yellow-700/50 mb-6">
+            <p className="text-sm text-yellow-400 animate-pulse">⏳ En attente de l&apos;autorisation...</p>
+          </div>
+          <button
+            onClick={() => router.push('/')}
+            className="text-gray-400 hover:text-white transition"
+          >
+            ← Retour à l&apos;accueil
+          </button>
+        </div>
+      </main>
+    );
+  }
+
+  // --- PERMISSIONS REFUSÉES ---
+  if (screenMode === 'menu' && mediaPermissionStatus === 'denied') {
+    return (
+      <main className="min-h-screen flex items-center justify-center p-4">
+        <div className="max-w-md w-full text-center">
+          <div className="text-9xl mb-6">🚫</div>
+          <h1 className="text-3xl font-bold mb-4 text-red-400">Accès refusé</h1>
+          <p className="text-gray-400 mb-6">
+            La caméra ou le microphone n&apos;est pas autorisé. Le matchmaking est impossible sans ces périphériques.
+          </p>
+          <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-red-700/50 mb-6 text-left">
+            <p className="font-semibold text-white mb-3">Comment autoriser l&apos;accès :</p>
+            <ol className="space-y-2 text-sm text-gray-400 list-decimal list-inside">
+              <li>Clique sur l&apos;icône 🔒 ou 📷 dans la barre d&apos;adresse</li>
+              <li>Autorise la caméra et le microphone</li>
+              <li>Recharge la page</li>
+            </ol>
+          </div>
+          <button
+            onClick={() => window.location.reload()}
+            className="px-6 py-3 bg-primary-600 hover:bg-primary-700 rounded-lg font-semibold transition mb-4 w-full"
+          >
+            🔄 Recharger la page
+          </button>
+          <button
+            onClick={() => router.push('/')}
+            className="text-gray-400 hover:text-white transition"
+          >
+            ← Retour à l&apos;accueil
+          </button>
+        </div>
+      </main>
+    );
+  }
 
   // --- MENU ---
   if (screenMode === 'menu') {
@@ -333,7 +399,7 @@ export default function GamePage() {
 
       {/* Indicateur de détection */}
       <div className={`backdrop-blur-sm rounded-xl p-4 border transition-colors ${
-        isModelLoaded && !faceDetected
+        isModelLoaded && (!faceDetected || !mouthDetected)
           ? 'bg-red-900/40 border-red-500 animate-pulse'
           : 'bg-gray-800/50 border-gray-700'
       }`}>
@@ -343,6 +409,8 @@ export default function GamePage() {
               <p className="text-sm text-gray-400">⏳ Chargement de la détection...</p>
             ) : !faceDetected ? (
               <p className="text-sm text-red-400 font-semibold">⚠️ Visage non détecté — reviens dans le cadre !</p>
+            ) : !mouthDetected ? (
+              <p className="text-sm text-red-400 font-semibold">⚠️ Bouche non visible — ne la cache pas !</p>
             ) : (
               <p className="text-sm text-gray-400">👁️ Détection du sourire active</p>
             )}
@@ -350,7 +418,7 @@ export default function GamePage() {
               {!isConnected ? '🔴 Connexion perdue...' : 'Garde ton sérieux ! Le premier qui rit perd.'}
             </p>
           </div>
-          {isModelLoaded && faceDetected && (
+          {isModelLoaded && faceDetected && mouthDetected && (
             <div className="text-right">
               <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
                 <div

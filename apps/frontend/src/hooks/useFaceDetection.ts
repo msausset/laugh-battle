@@ -7,6 +7,10 @@ const DETECTION_INTERVAL_MS = 400;
 const SUSTAINED_SMILE_MS = 1500;
 // Pas de visage détecté pendant 3s → défaite
 const NO_FACE_TIMEOUT_MS = 3000;
+// Pas de bouche détectée pendant 5s → défaite
+const NO_MOUTH_TIMEOUT_MS = 5000;
+// Indices des landmarks de la bouche (modèle 68 points : 48–67)
+const MOUTH_LANDMARK_INDICES = Array.from({ length: 20 }, (_, i) => i + 48);
 
 export function useFaceDetection({
   stream,
@@ -22,10 +26,12 @@ export function useFaceDetection({
   const [isModelLoaded, setIsModelLoaded] = useState(false);
   const [smileConfidence, setSmileConfidence] = useState(0);
   const [faceDetected, setFaceDetected] = useState(true);
+  const [mouthDetected, setMouthDetected] = useState(true);
 
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const smilingStartRef = useRef<number | null>(null);
   const noFaceStartRef = useRef<number | null>(null);
+  const noMouthStartRef = useRef<number | null>(null);
   const hasTriggeredRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const onLaughRef = useRef(onLaughDetected);
@@ -41,6 +47,7 @@ export function useFaceDetection({
     faceapi.nets.tinyFaceDetector
       .loadFromUri(MODELS_PATH)
       .then(() => faceapi.nets.faceExpressionNet.loadFromUri(MODELS_PATH))
+      .then(() => faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODELS_PATH))
       .then(() => setIsModelLoaded(true))
       .catch((err) => console.error('Erreur chargement modèles face-api:', err));
   }, []);
@@ -74,8 +81,10 @@ export function useFaceDetection({
       hasTriggeredRef.current = false;
       smilingStartRef.current = null;
       noFaceStartRef.current = null;
+      noMouthStartRef.current = null;
       setSmileConfidence(0);
       setFaceDetected(true);
+      setMouthDetected(true);
     }
   }, [enabled]);
 
@@ -90,12 +99,15 @@ export function useFaceDetection({
       try {
         const result = await faceapi
           .detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+          .withFaceLandmarks(true)
           .withFaceExpressions();
 
         if (!result) {
           // Pas de visage détecté
           setFaceDetected(false);
+          setMouthDetected(false);
           smilingStartRef.current = null;
+          noMouthStartRef.current = null;
           setSmileConfidence(0);
 
           if (noFaceStartRef.current === null) {
@@ -111,6 +123,34 @@ export function useFaceDetection({
         // Visage détecté — réinitialiser le timer no-face
         setFaceDetected(true);
         noFaceStartRef.current = null;
+
+        // Vérifier si la bouche est visible via les landmarks
+        const landmarks = result.landmarks.positions;
+        const videoWidth = video.videoWidth || 1;
+        const videoHeight = video.videoHeight || 1;
+        const mouthPoints = MOUTH_LANDMARK_INDICES.map((i) => landmarks[i]);
+        const isMouthVisible = mouthPoints.every(
+          (pt) => pt.x > 0 && pt.y > 0 && pt.x < videoWidth && pt.y < videoHeight
+        );
+
+        if (!isMouthVisible) {
+          setMouthDetected(false);
+          smilingStartRef.current = null;
+          setSmileConfidence(0);
+
+          if (noMouthStartRef.current === null) {
+            noMouthStartRef.current = Date.now();
+          } else if (Date.now() - noMouthStartRef.current >= NO_MOUTH_TIMEOUT_MS) {
+            hasTriggeredRef.current = true;
+            if (intervalRef.current) clearInterval(intervalRef.current);
+            onNoFaceRef.current?.();
+          }
+          return;
+        }
+
+        // Bouche visible — réinitialiser le timer no-mouth
+        setMouthDetected(true);
+        noMouthStartRef.current = null;
 
         const happy = result.expressions.happy ?? 0;
         setSmileConfidence(Math.round(happy * 100));
@@ -138,5 +178,5 @@ export function useFaceDetection({
     };
   }, [isModelLoaded, enabled]);
 
-  return { isModelLoaded, smileConfidence, faceDetected };
+  return { isModelLoaded, smileConfidence, faceDetected, mouthDetected };
 }

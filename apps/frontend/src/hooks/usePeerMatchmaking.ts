@@ -6,6 +6,8 @@ interface UsePeerMatchmakingProps {
   onConnectionEstablished?: () => void;
 }
 
+export type MediaPermissionStatus = 'pending' | 'granted' | 'denied';
+
 export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: UsePeerMatchmakingProps = {}) {
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -13,6 +15,7 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
   const [myPeerId, setMyPeerId] = useState<string | null>(null);
   const [isSearching, setIsSearching] = useState(false);
   const [roomCode, setRoomCode] = useState<string | null>(null);
+  const [mediaPermissionStatus, setMediaPermissionStatus] = useState<MediaPermissionStatus>('pending');
 
   const peerRef = useRef<Peer | null>(null);
   const callRef = useRef<MediaConnection | null>(null);
@@ -73,10 +76,11 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
         });
 
         setLocalStream(stream);
+        setMediaPermissionStatus('granted');
         console.log('📹 Stream local initialisé');
       } catch (error) {
         console.error('❌ Impossible d\'accéder à la caméra/micro:', error);
-        alert('Impossible d\'accéder à la caméra/micro. Vérifiez les permissions.');
+        setMediaPermissionStatus('denied');
       }
     };
 
@@ -298,6 +302,7 @@ export function usePeerMatchmaking({ onMatchFound, onConnectionEstablished }: Us
     myPeerId,
     roomCode,
     isSearching,
+    mediaPermissionStatus,
     createRoom,
     joinRoom,
     disconnect,

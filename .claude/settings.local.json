@@ -21,7 +21,9 @@
       "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/tiny_face_detector_model-weights_manifest.json\" -o tiny_face_detector_model-weights_manifest.json)",
       "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/tiny_face_detector_model-shard1\" -o tiny_face_detector_model-shard1)",
       "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_expression_model-weights_manifest.json\" -o face_expression_model-weights_manifest.json)",
-      "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_expression_model-shard1\" -o face_expression_model-shard1)"
+      "Bash(curl -sL \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_expression_model-shard1\" -o face_expression_model-shard1)",
+      "Bash(curl -L -o \"c:/Users/viver/Desktop/travail/laugh-battle/apps/frontend/public/models/face_landmark_68_tiny_model-shard1\" \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_landmark_68_tiny_model-shard1\")",
+      "Bash(curl -L -o \"c:/Users/viver/Desktop/travail/laugh-battle/apps/frontend/public/models/face_landmark_68_tiny_model-weights_manifest.json\" \"https://raw.githubusercontent.com/justadudewhohacks/face-api.js/master/weights/face_landmark_68_tiny_model-weights_manifest.json\")"
     ]
   }
 }
